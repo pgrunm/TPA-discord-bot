@@ -2,3 +2,10 @@ venv/
 *.pyc
 .vscode/
 .env
+.pytest_cache/
+__pycache__/
+*.db
+
+
+# Log files
+*.log
