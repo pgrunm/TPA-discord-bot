@@ -1,15 +1,20 @@
 import asyncio
+import datetime
 import json
 import logging
 import os
 import sqlite3
-import datetime
+from datetime import date, datetime
 
 import aiohttp
 from dotenv import load_dotenv
+from peewee import (CharField, DateField, DoesNotExist, ForeignKeyField, Model,
+                    SqliteDatabase)
 from ratelimit import limits, sleep_and_retry
 
-from functions import create_database
+from models import Players
+
+db = SqliteDatabase('tpa.db')
 
 
 async def retrieve_xp(cur, con):
@@ -75,7 +80,7 @@ async def retrieve_xp(cur, con):
         con.commit()
 
 
-async def get_members(sql_cur, sql_con):
+async def get_members():
     url = 'http://cv.thepenguinarmy.de/BotRequest/AllMember'
 
     # Basic Auth from env file
@@ -98,31 +103,31 @@ async def get_members(sql_cur, sql_con):
         async with session.post(url, json=game_id) as resp:
             data = await resp.text()
 
-            # Save the output
-            # Create the list for the SQL insert statements
-            insert_statements = list()
-
             for user in json.loads(data):
                 nickname = user['Ubisoft']['nickname']
-                # Check if the user is already inside the database
-                # https://stackoverflow.com/a/30042512
-                c = sql_cur.execute(
-                    f'SELECT EXISTS(SELECT 1 FROM players WHERE player_name = ?);', (nickname,)).fetchone()[0]
+                ubi_id = user['Ubisoft']['officialAccountId']
 
-                # Check if c != 1 -> User is not inside the database
-                if not c:
-                    if user['isMember'] == True:
-                        # Append the SQL Statement
-                        insert_statements.append((nickname,))
+                # Try to find the user inside the database
+                try:
+                    player = Players.get(Players.player_name ==
+                                         nickname or Players.player_ubi_id == ubi_id)
 
-            try:
-                sql_cur.executemany(
-                    "INSERT INTO players (player_name) VALUES (?)", insert_statements)
-            except Exception as e:
-                print(f'Error occured while saving rows: {e}')
+                    # Save the Ubisoft ID and if the name has changed also the name.
+                    player.player_name = nickname
+                    player.player_ubi_id = ubi_id
 
-            # Commit all changes made
-            sql_con.commit()
+                # If the player does not exists yet we have to create it
+                except DoesNotExist:
+                    player = Players()
+                    player.player_name = nickname
+                    player.player_xp = 0
+                    player.player_ubi_id = ubi_id
+                    logging.debug(
+                        f"Spieler {nickname} does not exist, creating it with Ubisoft ID {ubi_id}...")
+
+                # Save the changes to the database
+                finally:
+                    player.save()
 
 
 async def fetch(session, url, headers=''):
@@ -160,29 +165,30 @@ if __name__ == "__main__":
                         encoding='utf-8', level=os.getenv('log_level').upper(),
                         format='[%(levelname)s]%(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 
+    # Connect to the database and create missing tables
+    logging.debug('Creating connection to database...')
+    db.connect()
+    logging.debug('Creating missing tables...')
+    db.create_tables(models=[Players])
+
     # Call the TRN Web service
     loop = asyncio.get_event_loop()
 
     # Get the Player data for me
     # loop.run_until_complete(main())
 
-    # create_database()
-
-    logging.debug('Creating connection to database...')
-    con = sqlite3.connect('tpa.db')
-    cur = con.cursor()
-
     # for i in range(0, 14):
     #     logging.debug(f'Aufruf test_ratelimit mit i = {i}')
     #     loop.run_until_complete(test_ratelimit(i))
 
-    loop.run_until_complete(get_members(cur, con))
+    loop.run_until_complete(get_members())
 
     # Get the XP
-    loop.run_until_complete(retrieve_xp(cur, con))
+    # loop.run_until_complete(retrieve_xp(cur, con))
 
     # Logging shutdown
     logging.debug('Closing connection to database.')
-    con.close()
+    db.close()
 
+    logging.info('Shutting down.')
     logging.shutdown()
