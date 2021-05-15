@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+from json.decoder import JSONDecodeError
 import logging
 import os
 import sqlite3
@@ -12,12 +13,12 @@ from peewee import (CharField, DateField, DoesNotExist, ForeignKeyField, Model,
                     SqliteDatabase)
 from ratelimit import limits, sleep_and_retry
 
-from models import Players
+from models import Player
 
 db = SqliteDatabase('tpa.db')
 
 
-async def retrieve_xp(cur, con):
+async def retrieve_xp():
 
     # Link to docs: https://tracker.gg/developers/docs/titles/division-2
     # https://public-api.tracker.gg/v2/division-2/standard/profile/uplay/{user}
@@ -26,58 +27,56 @@ async def retrieve_xp(cur, con):
     headers = {'TRN-Api-Key': os.getenv('TRN_API')}
 
     @sleep_and_retry
-    @limits(calls=7, period=60)
+    @limits(calls=10, period=60)
     async def call_api(session, url, headers):
         html = await fetch(session=session, url=url, headers=headers)
         return html
-
-    player_xp_statements = list()
-
-    # Today's date
-    date = f"{datetime.datetime.now():%d.%m.%Y}"
 
     # Call the TRN API
     async with aiohttp.ClientSession() as session:
 
         # Get all members from the database
-        for row in cur.execute('SELECT player_name, player_id from players;'):
-
-            player_name = row[0]
-            player_id = row[1]
-
-            url = f'https://public-api.tracker.gg/v2/division-2/standard/profile/uplay/{player_name}'
+        for player in Player.select():
+            # Get the XP for the player
+            url = f'https://public-api.tracker.gg/v2/division-2/standard/profile/uplay/{player.player_name}'
 
             # Parse the output, required attribute: xPClan
             raw_json = await call_api(session, url, headers)
-
-            content = json.loads(raw_json)
-
             try:
-                # Get the Clan XP
-                value_clan_xp = content['data']['segments'][0]['stats']['xPClan']['value']
-            # If no data is found -> log it
-            except KeyError:
-                logging.debug(f'No data found for player {player_name}')
+                content = json.loads(raw_json)
+            except JSONDecodeError as json_decode_error:
+                logging.error(
+                    f'Error while decoding content for player {player.player_name}. Error: {json_decode_error}')
 
-            finally:
-                # Check if there is a value, if not set it to 0
-                if value_clan_xp == None:
+            # Code will be run if there was no exception
+            else:
+                try:
+                    # Get the Clan XP
+                    value_clan_xp = content['data']['segments'][0]['stats']['xPClan']['value']
+                # If no data is found -> log it
+                except KeyError:
+                    logging.warning(
+                        f'No data found for player {player.player_name}')
+
+                finally:
+                    # Check if there is a value, if not set it to 0
+                    if value_clan_xp == None:
+                        logging.debug(
+                            f'Clan XP for player {player.player_name} was Null, setting it to 0')
+                        value_clan_xp = 0
+
+                    # If this a totally new parsed player he does not have any xp inside the database. So save the current clan xp.
+                    if player.player_xp == 0:
+                        player.player_xp = value_clan_xp
+
+                    # Calculate the XP difference and update the value inside the DB
+                    diff_xp = value_clan_xp - player.player_xp
+                    player.player_weekly_xp = diff_xp
+
                     logging.debug(
-                        f'Clan XP for player xy was null, setting it to 0')
-                    value_clan_xp = 0
-
-                # Prepare the sql statement
-                player_xp_statements.append((player_id, value_clan_xp, date,))
-
-            logging.debug(
-                f'Parsed Clan XP for player {player_name} value: {value_clan_xp}')
-
-        logging.debug('Saving player xp data to database')
-
-        # Insert the date
-        cur.executemany(
-            "INSERT INTO xp (player_id, player_xp, xp_date, xp_id) VALUES (?, ?, ?, NULL)", player_xp_statements)
-        con.commit()
+                        f'Adding {diff_xp} xp for player {player.player_name} data to database')
+                    # Write the XP to database
+                    player.save()
 
 
 async def get_members():
@@ -109,8 +108,8 @@ async def get_members():
 
                 # Try to find the user inside the database
                 try:
-                    player = Players.get(Players.player_name ==
-                                         nickname or Players.player_ubi_id == ubi_id)
+                    player = Player.get(Player.player_name ==
+                                        nickname or Player.player_ubi_id == ubi_id)
 
                     # Save the Ubisoft ID and if the name has changed also the name.
                     player.player_name = nickname
@@ -118,7 +117,7 @@ async def get_members():
 
                 # If the player does not exists yet we have to create it
                 except DoesNotExist:
-                    player = Players()
+                    player = Player()
                     player.player_name = nickname
                     player.player_xp = 0
                     player.player_ubi_id = ubi_id
@@ -152,7 +151,7 @@ async def test_ratelimit(number):
 
     logging.debug(f'Starte Test aufruf zu {url}')
     async with aiohttp.ClientSession() as session:
-        html = await fetch(session, url)
+        await fetch(session, url)
         logging.debug(f'Response erhalten für Number = {number}')
 
 
@@ -169,7 +168,7 @@ if __name__ == "__main__":
     logging.debug('Creating connection to database...')
     db.connect()
     logging.debug('Creating missing tables...')
-    db.create_tables(models=[Players])
+    db.create_tables(models=[Player])
 
     # Call the TRN Web service
     loop = asyncio.get_event_loop()
@@ -181,10 +180,11 @@ if __name__ == "__main__":
     #     logging.debug(f'Aufruf test_ratelimit mit i = {i}')
     #     loop.run_until_complete(test_ratelimit(i))
 
+    # Get all Members from the Administration
     loop.run_until_complete(get_members())
 
-    # Get the XP
-    # loop.run_until_complete(retrieve_xp(cur, con))
+    # Get the XP for each user
+    loop.run_until_complete(retrieve_xp())
 
     # Logging shutdown
     logging.debug('Closing connection to database.')
