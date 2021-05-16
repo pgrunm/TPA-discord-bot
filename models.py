@@ -1,4 +1,7 @@
-from peewee import SqliteDatabase, Model, AutoField, TextField, ForeignKeyField, IntegerField, DateTimeField
+import asyncio
+
+from peewee import (AutoField, DateTimeField, ForeignKeyField, IntegerField,
+                    Model, SqliteDatabase, TextField)
 
 database = SqliteDatabase('tpa.db')
 
@@ -21,3 +24,6 @@ class Player(BaseModel):
 
     class Meta:
         table_name = 'players'
+
+    def __str__(self):
+        return f'Player: {self.player_name}, ID {self.player_id}'
