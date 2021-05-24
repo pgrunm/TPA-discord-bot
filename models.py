@@ -238,6 +238,7 @@ class Message(BaseModel):
     message_id = AutoField(null=True)
     discord_message_id = IntegerField(null=True)
     description = TextField(null=True)
+    discord_channel_id = IntegerField(null=True)
 
     class Meta:
         table_name = 'discord_messages'
