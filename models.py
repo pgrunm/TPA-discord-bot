@@ -6,8 +6,8 @@ import time
 from json.decoder import JSONDecodeError
 
 import aiohttp
-from peewee import (AutoField, DateTimeField, ForeignKeyField, IntegerField,
-                    Model, SqliteDatabase, TextField, DoesNotExist)
+from peewee import (AutoField, DoesNotExist, IntegerField, Model,
+                    SqliteDatabase, TextField)
 
 database = SqliteDatabase('tpa.db')
 
