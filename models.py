@@ -182,14 +182,56 @@ class Player(BaseModel):
                     finally:
                         player.save()
 
+    async def check_player_exit(self, session):
+        url = 'http://bot.thepenguinarmy.de/BotRequest/Member'
+
+        # Basic Auth from env file
+        auth = aiohttp.BasicAuth(login=os.getenv('member_username'),
+                                 password=os.getenv('member_pw'))
+
+        # Create the JSON dict
+        game_id = {'accountTypName': 'Ubisoft',
+                   'officialAccountId': self.player_ubi_id}
+
+        logging.debug(
+            f'Trying to retrieve member stats for user {self.player_name} with ubi id {self.player_ubi_id}')
+
+        # Send a POST request to the url and ask for members
+        async with session.post(url, json=game_id, auth=auth) as resp:
+            data = await resp.text()
+
+            # Parse the raw json into an object
+            content = json.loads(data)
+            logging.debug(
+                f'Parsed json data for player {self.player_name}: {content}')
+
+            if 'isMember' in content[0]:
+                is_member = content[0]['isMember']
+
+            # Continue with the parsed value
+            logging.debug(
+                f'Parsed value for player {self.player_name}: {is_member}')
+            return is_member
+
     @classmethod
     async def update_player_data(cls):
         async with aiohttp.ClientSession() as session:
             for player in Player.select():
-                logging.debug(f'Updating player data for {player}')
-                await player.update_player_xp(session)
-                logging.debug(
-                    f'Finished updating player data for player {player}')
+
+                # Check if the selected player is still member
+                is_member = player.check_player_exit(session=session)
+
+                if is_member == True:
+                    logging.debug(f'Updating player data for {player}')
+                    await player.update_player_xp(session)
+                    logging.debug(
+                        f'Finished updating player data for player {player}')
+                else:
+                    logging.debug(
+                        f'Deleting player {player.player_name} from database')
+
+                    # Delete the player from database
+                    Player.delete().where(Player.player_ubi_id == player.player_ubi_id)
 
 
 class Message(BaseModel):
