@@ -1,9 +1,45 @@
 import asyncio
+import json
+import logging
+import os
+import time
+from json.decoder import JSONDecodeError
 
+import aiohttp
 from peewee import (AutoField, DateTimeField, ForeignKeyField, IntegerField,
-                    Model, SqliteDatabase, TextField)
+                    Model, SqliteDatabase, TextField, DoesNotExist)
 
 database = SqliteDatabase('tpa.db')
+
+
+class Limit(object):
+    def __init__(self, calls=5, period=1):
+        self.calls = calls
+        self.period = period
+        self.clock = time.monotonic
+        self.last_reset = 0
+        self.num_calls = 0
+
+    def __call__(self, func):
+        async def wrapper(*args, **kwargs):
+            if self.num_calls >= self.calls:
+                await asyncio.sleep(self.__period_remaining())
+
+            period_remaining = self.__period_remaining()
+
+            if period_remaining <= 0:
+                self.num_calls = 0
+                self.last_reset = self.clock()
+
+            self.num_calls += 1
+
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    def __period_remaining(self):
+        elapsed = self.clock() - self.last_reset
+        return self.period - elapsed
 
 
 class UnknownField(object):
@@ -27,3 +63,142 @@ class Player(BaseModel):
 
     def __str__(self):
         return f'Player: {self.player_name}, ID {self.player_id}'
+
+    @staticmethod
+    async def fetch(session, url, headers=''):
+        # https://docs.aiohttp.org/en/stable/http_request_lifecycle.html#how-to-use-the-clientsession
+        '''Allows retrieval of a url with a session added
+        '''
+        async with session.get(url, headers=headers) as response:
+            logging.debug(f"HTTP Status for {url}: {response.status}")
+            if 'X-RateLimit-Remaining-minute' in response.headers:
+                logging.debug(
+                    f"Remaining Requests per minute: {response.headers['X-RateLimit-Remaining-minute']}")
+
+            # Return the response text
+            return await response.text()
+
+    @staticmethod
+    @Limit(calls=10, period=60)
+    async def call_api(session, url, headers):
+        html = await Player.fetch(session=session, url=url, headers=headers)
+        return html
+
+    async def update_player_xp(self, session):
+        '''Retrieves the current amount of xp of a player'''
+
+        # Pass the API key to the header
+        headers = {'TRN-Api-Key': os.getenv('TRN_API')}
+
+        url = f'https://public-api.tracker.gg/v2/division-2/standard/profile/uplay/{self.player_name}'
+
+        # Parse the output, required attribute: xPClan
+        raw_json = await Player.call_api(session, url, headers)
+        try:
+            content = json.loads(raw_json)
+        except JSONDecodeError as json_decode_error:
+            logging.error(
+                f'Error while decoding content for player {self.player_name}. Error: {json_decode_error}')
+
+        # Code will be run if there was no exception
+        else:
+            try:
+                # Get the Clan XP
+                if 'data' in content:
+                    value_clan_xp = content['data']['segments'][0]['stats']['xPClan']['value']
+                else:
+                    value_clan_xp = 0
+            # If no data is found -> log it
+            except KeyError:
+                logging.warning(
+                    f'No data found for player {self.player_name}')
+
+            finally:
+                # Check if there is a value, if not set it to 0
+                if value_clan_xp == None:
+                    logging.debug(
+                        f'Clan XP for player {self.player_name} was Null, setting it to 0')
+                    value_clan_xp = 0
+
+                # If this a totally new parsed player he does not have any xp inside the database. So save the current clan xp.
+                if self.player_xp == 0:
+                    self.player_xp = value_clan_xp
+
+                # Calculate the XP difference and update the value inside the DB
+                diff_xp = value_clan_xp - self.player_xp
+                self.player_weekly_xp = diff_xp
+
+                logging.debug(
+                    f'Adding {diff_xp} xp for player {self.player_name} data to database')
+                # Write the XP to database
+                self.save()
+
+    @staticmethod
+    async def get_members():
+        url = 'http://cv.thepenguinarmy.de/BotRequest/AllMember'
+
+        # Basic Auth from env file
+        auth = aiohttp.BasicAuth(login=os.getenv('member_username'),
+                                 password=os.getenv('member_pw'))
+
+        # Post request with HTTP basic auth
+        async with aiohttp.ClientSession(auth=auth) as session:
+            # Game IDs:
+            # gameId = 1: Division 2
+            # gameID = 2: TemTem
+
+            # Limit time:
+            # lastModified = 0000-00-00 00:00:00 (YYYY-MM-DD)
+
+            # Create the JSON dict
+            game_id = {'gameId': 1}
+
+            # Send a POST request to the url and ask for members
+            async with session.post(url, json=game_id) as resp:
+                data = await resp.text()
+
+                for user in json.loads(data):
+                    nickname = user['Ubisoft']['nickname']
+                    ubi_id = user['Ubisoft']['officialAccountId']
+
+                    # Try to find the user inside the database
+                    try:
+                        player = Player.get(Player.player_name ==
+                                            nickname or Player.player_ubi_id == ubi_id)
+
+                        # Save the Ubisoft ID and if the name has changed also the name.
+                        player.player_name = nickname
+                        player.player_ubi_id = ubi_id
+
+                    # If the player does not exists yet we have to create it
+                    except DoesNotExist:
+                        player = Player(player_name=nickname,
+                                        player_xp=0, player_ubi_id=ubi_id)
+
+                        logging.debug(
+                            f"Spieler {nickname} does not exist, creating it with Ubisoft ID {ubi_id}...")
+
+                    # Save the changes to the database
+                    finally:
+                        player.save()
+
+    @classmethod
+    async def update_player_data(cls):
+        async with aiohttp.ClientSession() as session:
+            for player in Player.select():
+                logging.debug(f'Updating player data for {player}')
+                await player.update_player_xp(session)
+                logging.debug(
+                    f'Finished updating player data for player {player}')
+
+
+class Message(BaseModel):
+    message_id = AutoField(null=True)
+    discord_message_id = IntegerField(null=True)
+    description = TextField(null=True)
+
+    class Meta:
+        table_name = 'discord_messages'
+
+    def __str__(self):
+        return f'Discord Message ID: {self.discord_message_id}, Description {self.description}'
