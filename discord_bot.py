@@ -1,9 +1,11 @@
 import asyncio
+from datetime import datetime
 import logging
 import os
 
 import discord
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from discord import Message
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from peewee import CharField  # Required permissions: Server Members Intent
@@ -29,20 +31,37 @@ async def on_ready():
     logging.info('Logged in as {0.user}'.format(bot))
 
 
-@tasks.loop(minutes=30)
-async def called_once_a_day():
-    channel_id = 835946447097823262
+async def update_xp_messages():
+    now = datetime.now().strftime('%d.%m.%Y %H:%M:%S')
 
-    message_channel = bot.get_channel(channel_id)
-    print(f"Got channel {message_channel}")
-    await message_channel.send("Test Message")
+    for msg in Message.select():
+        channel = bot.get_channel(msg.discord_channel_id)
+
+        try:
+            xp_message = await channel.fetch_message(msg.discord_message_id)
+        except:
+            logging.error(f'Failed to parse the msg id')
+        else:
+            if msg.description == 'member_clan_xp':
+                await xp_message.edit(content=f'New Content Clan Member XP Message at {now}')
+            elif msg.description == 'admin_clan_xp':
+                await xp_message.edit(content=f'New Content Admin Member XP Message at {now}')
 
 
-@called_once_a_day.before_loop
-async def before():
-    # https://discordpy.readthedocs.io/en/latest/ext/tasks/index.html
-    # https://stackoverflow.com/a/57634182
-    await bot.wait_until_ready()
+async def new_xp_messages():
+    for msg in Message.select():
+        channel = bot.get_channel(msg.discord_channel_id)
+
+        if msg.description == 'member_clan_xp':
+            sent_message = await channel.send("Neue Clan Member XP Nachricht")
+
+        elif msg.description == 'admin_clan_xp':
+            sent_message = await channel.send("Neue Clan Admin XP Nachricht")
+
+        if sent_message != None:
+            # Save the message id to the database, so we can edit it later
+            msg.discord_message_id = sent_message.id
+            msg.save()
 
 
 if __name__ == '__main__':
@@ -66,10 +85,15 @@ if __name__ == '__main__':
 
     # Scheduler for timing events
     # how to add jobs: https://apscheduler.readthedocs.io/en/stable/userguide.html#adding-jobs
+    # https://cron.help/
     scheduler = AsyncIOScheduler()
+    # scheduler.add_job(Player.update_player_data, 'cron', minute='*/5')
+    scheduler.add_job(new_xp_messages, 'cron', minute='*/10')
+    scheduler.add_job(update_xp_messages, 'cron', minute='*/1')
     scheduler.start()
 
-    called_once_a_day.start()
+    # called_once_a_day.start()
+
     bot.run(os.getenv('discord_bot_key'))
 
     # Nachricht ändern: https://stackoverflow.com/a/55711759
