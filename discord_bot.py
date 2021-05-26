@@ -43,9 +43,11 @@ async def update_xp_messages():
             logging.error(f'Failed to parse the msg id')
         else:
             if msg.description == 'member_clan_xp':
-                await xp_message.edit(content=f'New Content Clan Member XP Message at {now}')
+                msg = await Player.get_player_weekly_xp_as_message()
+                await xp_message.edit()
             elif msg.description == 'admin_clan_xp':
-                await xp_message.edit(content=f'New Content Admin Member XP Message at {now}')
+                msg = await Player.get_player_weekly_xp_as_message(player_limit=-1)
+                await xp_message.edit(content=msg)
 
 
 async def new_xp_messages():
@@ -53,10 +55,10 @@ async def new_xp_messages():
         channel = bot.get_channel(msg.discord_channel_id)
 
         if msg.description == 'member_clan_xp':
-            sent_message = await channel.send("Neue Clan Member XP Nachricht")
+            sent_message = await channel.send(Player.get_player_weekly_xp_as_message())
 
         elif msg.description == 'admin_clan_xp':
-            sent_message = await channel.send("Neue Clan Admin XP Nachricht")
+            sent_message = await channel.send(Player.get_player_weekly_xp_as_message(player_limit=-1))
 
         if sent_message != None:
             # Save the message id to the database, so we can edit it later
