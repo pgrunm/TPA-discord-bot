@@ -269,7 +269,7 @@ class Player(BaseModel):
         locale._override_localeconv = {'mon_thousands_sep': '.'}
 
         # Get the xp of all the players, limit by the parameter player_limit
-        for player in Player.select().order_by(Player.player_weekly_xp.desc()).limit(player_limit):
+        for player in Player.select().where(Player.player_weekly_xp >= 0).order_by(Player.player_weekly_xp.desc()).limit(player_limit):
 
             # Added the player's xp to the message
             # Mention the player: https://stackoverflow.com/a/43991145
