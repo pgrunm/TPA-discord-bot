@@ -1,5 +1,7 @@
 import asyncio
+import datetime
 import json
+import locale
 import logging
 import os
 import time
@@ -57,6 +59,7 @@ class Player(BaseModel):
     player_xp = IntegerField(null=True)
     player_ubi_id = TextField(null=True, unique=True)
     player_weekly_xp = IntegerField(null=True)
+    player_discord_id = IntegerField(null=True)
 
     class Meta:
         table_name = 'players'
@@ -172,6 +175,7 @@ class Player(BaseModel):
                 for user in json.loads(data):
                     nickname = user['Ubisoft']['nickname']
                     ubi_id = user['Ubisoft']['officialAccountId']
+                    discord_id = user['Discord']['officialAccountId']
 
                     # Try to find the user inside the database
                     try:
@@ -182,10 +186,14 @@ class Player(BaseModel):
                         player.player_name = nickname
                         player.player_ubi_id = ubi_id
 
+                        # Check if the Discord id is empty
+                        if player.player_discord_id == None:
+                            player.player_discord_id = discord_id
+
                     # If the player does not exists yet we have to create it
                     except DoesNotExist:
                         player = Player(player_name=nickname,
-                                        player_xp=0, player_ubi_id=ubi_id)
+                                        player_xp=0, player_ubi_id=ubi_id, player_discord_id=discord_id)
 
                         logging.debug(
                             f"Spieler {nickname} does not exist, creating it with Ubisoft ID {ubi_id}...")
@@ -244,6 +252,33 @@ class Player(BaseModel):
 
                     # Delete the player from database
                     Player.delete().where(Player.player_ubi_id == player.player_ubi_id)
+
+    @classmethod
+    async def get_player_weekly_xp_as_message(cls, player_limit=10):
+        # Get current date and calculate the next thursday https://stackoverflow.com/a/8801197
+        d = datetime.date.today()
+        while d.weekday() != 3:
+            d += datetime.timedelta(1)
+
+        date_format = '%d.%m.%Y'
+        message = f'**Wöchentliche Clan XP**\n{(d - datetime.timedelta(days=7)).strftime(date_format)} - {d.strftime(date_format)}\n'
+        counter = 1
+
+        # Set the thousand seperator to dot
+        locale.setlocale(locale.LC_ALL, '')
+        locale._override_localeconv = {'mon_thousands_sep': '.'}
+
+        # Get the xp of all the players, limit by the parameter player_limit
+        for player in Player.select().order_by(Player.player_weekly_xp.desc()).limit(player_limit):
+
+            # Added the player's xp to the message
+            # Mention the player: https://stackoverflow.com/a/43991145
+            message = message + \
+                f"{counter}. {player.player_discord_id} ({player.player_name})\n{locale.format_string('%d', player.player_weekly_xp, grouping=True)}\n"
+
+            counter += 1
+
+        return message
 
 
 class Message(BaseModel):
