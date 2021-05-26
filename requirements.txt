@@ -1,2 +1,4 @@
 aiohttp[speedups]
 python-dotenv
+discord.py
+peewee
