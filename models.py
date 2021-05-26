@@ -84,7 +84,7 @@ class Player(BaseModel):
         html = await Player.fetch(session=session, url=url, headers=headers)
         return html
 
-    async def update_player_xp(self, session):
+    async def update_player_xp(self, session, update_weekly_xp=False):
         '''Retrieves the current amount of xp of a player'''
 
         # Pass the API key to the header
@@ -130,6 +130,18 @@ class Player(BaseModel):
 
                 logging.debug(
                     f'Adding {diff_xp} xp for player {self.player_name} data to database')
+
+                # Overwrite the weekly XP if update_weekly_xp = True
+                if update_weekly_xp == True:
+                    logging.debug(
+                        f'Updating weekly xp for player {self.player_name}')
+
+                    # Only Update the player's total xp if the value is > 0
+                    if value_clan_xp > 0:
+                        logging.debug(
+                            f'Value for clan xp for player {self.player_name} is bigger than 0, actual value: {value_clan_xp} ')
+                        self.player_xp = value_clan_xp
+
                 # Write the XP to database
                 self.save()
 
@@ -214,7 +226,7 @@ class Player(BaseModel):
             return is_member
 
     @classmethod
-    async def update_player_data(cls):
+    async def update_player_data(cls, update_weekly_xp=False):
         async with aiohttp.ClientSession() as session:
             for player in Player.select():
 
@@ -223,7 +235,7 @@ class Player(BaseModel):
 
                 if is_member == True:
                     logging.debug(f'Updating player data for {player}')
-                    await player.update_player_xp(session)
+                    await player.update_player_xp(session, update_weekly_xp=update_weekly_xp)
                     logging.debug(
                         f'Finished updating player data for player {player}')
                 else:
