@@ -32,8 +32,7 @@ async def on_ready():
 
 
 async def update_xp_messages():
-    now = datetime.now().strftime('%d.%m.%Y %H:%M:%S')
-
+    xp_msg = await Player.get_player_weekly_xp_as_message()
     for msg in Message.select():
         channel = bot.get_channel(msg.discord_channel_id)
 
@@ -43,11 +42,9 @@ async def update_xp_messages():
             logging.error(f'Failed to parse the msg id')
         else:
             if msg.description == 'member_clan_xp':
-                msg = await Player.get_player_weekly_xp_as_message()
-                await xp_message.edit()
+                await xp_message.edit(content=xp_msg)
             elif msg.description == 'admin_clan_xp':
-                msg = await Player.get_player_weekly_xp_as_message(player_limit=-1)
-                await xp_message.edit(content=msg)
+                await xp_message.edit(content=xp_msg)
 
 
 async def new_xp_messages():
@@ -94,16 +91,17 @@ if __name__ == '__main__':
                       day_of_week='thu', minute=15, hour=10)
 
     # https://cron.help/#*/30_*_*_*_*
-    scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
+    scheduler.add_job(update_xp_messages, 'cron', minute='*/5')
 
     # Update player data, https://cron.help/#15/30_*_*_*_*
     scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
 
     # Retrieve new members
+    scheduler.add_job(Player.get_members, 'cron', minute=55)
 
     # Update weekly xp
-    scheduler.add_job(lambda: Player.update_player_data(
-        update_weekly_xp=True), 'cron', day_of_week='thu', hour=10)
+    scheduler.add_job(Player.update_player_data, kwargs={
+        'update_weekly_xp': True}, trigger='cron',  day_of_week='thu', hour=10)
 
     scheduler.start()
 
