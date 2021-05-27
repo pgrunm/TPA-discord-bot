@@ -102,7 +102,7 @@ if __name__ == '__main__':
     # Retrieve new members
 
     # Update weekly xp
-    scheduler.add_job(Player.update_player_data(
+    scheduler.add_job(lambda: Player.update_player_data(
         update_weekly_xp=True), 'cron', day_of_week='thu', hour=10)
 
     scheduler.start()
