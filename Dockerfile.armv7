@@ -8,6 +8,6 @@ WORKDIR /app/tpa-discord
 COPY * /app/tpa-discord/
 
 # Install the required packages with pip
-RUN pip install -r /app/tpa-discord/requirements.txt 
+RUN pip install --extra-index-url "https://www.piwheels.org/simple" -r /app/tpa-discord/requirements.txt 
 
 CMD ["python3", "/app/tpa-discord/crawler.py"]
