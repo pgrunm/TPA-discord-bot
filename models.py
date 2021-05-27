@@ -82,7 +82,7 @@ class Player(BaseModel):
             return await response.text()
 
     @staticmethod
-    @Limit(calls=10, period=60)
+    @Limit(calls=20, period=60)
     async def call_api(session, url, headers):
         html = await Player.fetch(session=session, url=url, headers=headers)
         return html
