@@ -1,5 +1,5 @@
 # Getting the latest alpine linux image
-FROM python:3
+FROM python:slim
 
 # Run the following commands within /app/Telegrambot
 WORKDIR /app/tpa-discord
@@ -8,6 +8,6 @@ WORKDIR /app/tpa-discord
 COPY * /app/tpa-discord/
 
 # Install the required packages with pip
-RUN pip install --extra-index-url "https://www.piwheels.org/simple" -r /app/tpa-discord/requirements.txt 
+RUN pip install -i "https://www.piwheels.org/simple" -r /app/tpa-discord/requirements.txt 
 
 CMD ["python3", "/app/tpa-discord/crawler.py"]
