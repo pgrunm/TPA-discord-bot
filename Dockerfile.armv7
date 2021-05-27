@@ -1,0 +1,13 @@
+# Getting the latest alpine linux image
+FROM python:slim
+
+# Run the following commands within /app/Telegrambot
+WORKDIR /app/tpa-discord
+
+# Copy everything inside /app/Telegrambot except directories and files listed in the .dockerignore file.
+COPY * /app/tpa-discord/
+
+# Install the required packages with pip
+RUN pip install -r /app/tpa-discord/requirements.txt 
+
+CMD ["python3", "/app/tpa-discord/crawler.py"]
