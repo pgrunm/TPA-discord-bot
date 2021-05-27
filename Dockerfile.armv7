@@ -1,5 +1,5 @@
 # Getting the latest alpine linux image
-FROM python:slim
+FROM python:3
 
 # Run the following commands within /app/Telegrambot
 WORKDIR /app/tpa-discord
