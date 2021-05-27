@@ -89,9 +89,22 @@ if __name__ == '__main__':
     # how to add jobs: https://apscheduler.readthedocs.io/en/stable/userguide.html#adding-jobs
     # https://cron.help/
     scheduler = AsyncIOScheduler()
-    # scheduler.add_job(Player.update_player_data, 'cron', minute='*/5')
-    scheduler.add_job(new_xp_messages, 'cron', minute='*/10')
-    scheduler.add_job(update_xp_messages, 'cron', minute='*/1')
+    # https://cron.help/#15_10_*_*_4
+    scheduler.add_job(new_xp_messages, 'cron',
+                      day_of_week='thu', minute=15, hour=10)
+
+    # https://cron.help/#*/30_*_*_*_*
+    scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
+
+    # Update player data, https://cron.help/#15/30_*_*_*_*
+    scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
+
+    # Retrieve new members
+
+    # Update weekly xp
+    scheduler.add_job(Player.update_player_data(
+        update_weekly_xp=True), 'cron', day_of_week='thu', hour=10)
+
     scheduler.start()
 
     # called_once_a_day.start()
