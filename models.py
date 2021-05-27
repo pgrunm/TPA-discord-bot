@@ -239,7 +239,7 @@ class Player(BaseModel):
             for player in Player.select():
 
                 # Check if the selected player is still member
-                is_member = player.check_player_exit(session=session)
+                is_member = await player.check_player_exit(session=session)
 
                 if is_member == True:
                     logging.debug(f'Updating player data for {player}')
