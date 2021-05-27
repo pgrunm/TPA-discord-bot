@@ -261,7 +261,7 @@ class Player(BaseModel):
             d += datetime.timedelta(1)
 
         date_format = '%d.%m.%Y'
-        message = f'**Wöchentliche Clan XP**\n{(d - datetime.timedelta(days=7)).strftime(date_format)} - {d.strftime(date_format)}\n'
+        message = f'**Wöchentliche Clan XP**\n\n{(d - datetime.timedelta(days=7)).strftime(date_format)} - {d.strftime(date_format)}\n\n'
         counter = 1
 
         # Set the thousand seperator to dot
@@ -274,10 +274,12 @@ class Player(BaseModel):
             # Added the player's xp to the message
             # Mention the player: https://stackoverflow.com/a/43991145
             message = message + \
-                f"{counter}. {player.player_discord_id} ({player.player_name})\n{locale.format_string('%d', player.player_weekly_xp, grouping=True)}\n"
+                f"**{counter}.** {player.player_discord_id} ({player.player_name})\n{locale.format_string('%d', player.player_weekly_xp, grouping=True)}\n"
 
             counter += 1
 
+        now = datetime.datetime.now().strftime('%d.%m.%Y %H:%M:%S')
+        message = message + f'\nLast Update: {now}'
         return message
 
 
