@@ -1,4 +1,4 @@
-aiohttp[speedups]
-python-dotenv
+aiohttp[speedups]==3.7.4.post0
+python-dotenv==0.17.0
 discord.py==1.7.1
-peewee
+peewee==3.14.4
