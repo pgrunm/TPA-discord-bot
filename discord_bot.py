@@ -32,6 +32,7 @@ async def on_ready():
 
 
 async def update_xp_messages():
+    # Edit message: https://stackoverflow.com/a/55711759
     xp_msg = await Player.get_player_weekly_xp_as_message()
     for msg in Message.select():
         channel = bot.get_channel(msg.discord_channel_id)
@@ -119,8 +120,4 @@ if __name__ == '__main__':
 
     scheduler.start()
 
-    # called_once_a_day.start()
-
     bot.run(os.getenv('discord_bot_key'))
-
-    # Nachricht ändern: https://stackoverflow.com/a/55711759
