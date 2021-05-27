@@ -1,7 +1,7 @@
 import asyncio
-from datetime import datetime
 import logging
 import os
+from logging.handlers import RotatingFileHandler
 
 import discord
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -68,9 +68,23 @@ if __name__ == '__main__':
     # Load environmental variables
     load_dotenv()
 
+    # Logging configuration
+    log_file = 'bot.log'
+    log_level = os.getenv('log_level').upper()
+    log_encoding = 'utf-8'
+
     # Create the logging handler
-    logging.basicConfig(filename='bot.log',
-                        encoding='utf-8', level=os.getenv('log_level').upper(),
+    my_handler = RotatingFileHandler(log_file, mode='a',
+                                     # 5 -> 5 MiB
+                                     maxBytes=5*1024*1024,
+                                     backupCount=2, encoding=log_encoding, delay=0)
+
+    # Set the logging level
+    my_handler.setLevel(log_level)
+
+    # Create the config with the file handler from above
+    logging.basicConfig(level=log_level,
+                        handlers=[my_handler],
                         format='[%(levelname)s]%(asctime)s: %(message)s', datefmt='%d.%m.%Y %H:%M:%S')
 
     # Connect to the database and create missing tables
