@@ -94,9 +94,6 @@ if __name__ == '__main__':
     logging.debug('Creating missing tables...')
     db.create_tables(models=[Player, Message])
 
-    # Call the TRN Web service
-    loop = asyncio.get_event_loop()
-
     # Scheduler for timing events
     # how to add jobs: https://apscheduler.readthedocs.io/en/stable/userguide.html#adding-jobs
     # https://cron.help/
