@@ -10,4 +10,4 @@ COPY * /app/tpa-discord/
 # Install the required packages with pip
 RUN pip install -i "https://www.piwheels.org/simple" -r /app/tpa-discord/requirements.txt 
 
-CMD ["python3", "/app/tpa-discord/crawler.py"]
+CMD ["python3", "/app/tpa-discord/discord_bot.py"]
