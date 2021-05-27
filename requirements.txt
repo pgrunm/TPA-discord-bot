@@ -1,4 +1,4 @@
 aiohttp[speedups]
 python-dotenv
-discord.py
+discord.py==1.7.1
 peewee
