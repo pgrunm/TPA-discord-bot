@@ -264,17 +264,14 @@ class Player(BaseModel):
         message = f'**Wöchentliche Clan XP**\n\n{d.strftime(date_format)} - {(d + datetime.timedelta(days=7)).strftime(date_format)}\n\n'
         counter = 1
 
-        # Set the thousand seperator to dot
-        locale.setlocale(locale.LC_ALL, '')
-        locale._override_localeconv = {'mon_thousands_sep': '.'}
-
         # Get the xp of all the players, limit by the parameter player_limit
         for player in Player.select().where(Player.player_weekly_xp >= 0).order_by(Player.player_weekly_xp.desc()).limit(player_limit):
 
             # Added the player's xp to the message
             # Mention the player: https://stackoverflow.com/a/43991145
+            # Formatting the XP: https://stackoverflow.com/a/48414649
             message = message + \
-                f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{locale.format_string('%d', player.player_weekly_xp, grouping=True)}\n"
+                f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(player.player_weekly_xp).replace(',', '.')}\n"
 
             counter += 1
 
