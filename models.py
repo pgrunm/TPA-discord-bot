@@ -275,10 +275,10 @@ class Player(BaseModel):
 
         if today.weekday() > 3 or (today.weekday() == 3 and t.hour < 10):
             # After thursday / On Thursday before 10 o'clock
-            message = f'**Wöchentliche Clan XP**\n\n {(d - datetime.timedelta(days=7)).strftime(date_format)} - {d.strftime(date_format)}'
+            message = f'**Wöchentliche Clan XP**\n\n{(d - datetime.timedelta(days=7)).strftime(date_format)} - {d.strftime(date_format)}\n\n'
         elif today.weekday() < 3 or (today.weekday() == 3 and t.hour >= 10):
             # Before / On thursday after 10 o'clock
-            message = f'**Wöchentliche Clan XP**\n\n {d.strftime(date_format)} - {(d + datetime.timedelta(days=7)).strftime(date_format)}'
+            message = f'**Wöchentliche Clan XP**\n\n{d.strftime(date_format)} - {(d + datetime.timedelta(days=7)).strftime(date_format)}\n\n'
 
         # Get the xp of all the players, limit by the parameter player_limit
         for player in Player.select().where(Player.player_weekly_xp >= 0).order_by(Player.player_weekly_xp.desc()).limit(player_limit):
@@ -291,7 +291,7 @@ class Player(BaseModel):
 
             counter += 1
 
-        message = message + f"\nLast Update: {t.strftime('%d.%m.%y%H:%M')}"
+        message = message + f"\nLast Update: {t.strftime('%d.%m.%y %H:%M')}"
         return message
 
 
