@@ -4,10 +4,10 @@ FROM python:3.7-slim
 # Run the following commands within /app/Telegrambot
 WORKDIR /app/tpa-discord
 
-# Copy everything inside /app/Telegrambot except directories and files listed in the .dockerignore file.
-COPY * /app/tpa-discord/
+# Copy only the requirements file inside the app directory, except directories and files listed in the .dockerignore file.
+COPY requirements.txt /app/tpa-discord/
 
 # Install the required packages with pip
-RUN pip install -i "https://www.piwheels.org/simple" -r /app/tpa-discord/requirements.txt 
+RUN pip install --no-cache-dir -i "https://www.piwheels.org/simple" -r /app/tpa-discord/requirements.txt 
 
 CMD ["python3", "/app/tpa-discord/discord_bot.py"]
