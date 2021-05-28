@@ -118,13 +118,13 @@ if __name__ == '__main__':
                       day_of_week='thu', minute=15, hour=10)
 
     # https://cron.help/#*/30_*_*_*_*
-    # scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
+    scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
 
-    # # Update player data, https://cron.help/#15/30_*_*_*_*
-    # scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
+    # Update player data, https://cron.help/#15/30_*_*_*_*
+    scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
 
-    # # Retrieve new members
-    # scheduler.add_job(Player.get_members, 'cron', minute=55)
+    # Retrieve new members
+    scheduler.add_job(Player.get_members, 'cron', minute=55)
 
     # Update weekly xp
     scheduler.add_job(Player.update_player_data, kwargs={
