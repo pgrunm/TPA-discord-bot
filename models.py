@@ -218,20 +218,26 @@ class Player(BaseModel):
             f'Trying to retrieve member stats for user {self.player_name} with ubi id {self.player_ubi_id}')
 
         # Send a POST request to the url and ask for members
-        async with session.post(url, json=game_id, auth=auth) as resp:
-            data = await resp.text()
+        try:
+            async with session.post(url, json=game_id, auth=auth) as resp:
+                data = await resp.text()
 
-            # Parse the raw json into an object
-            content = json.loads(data)
-            logging.debug(
-                f'Parsed json data for player {self.player_name}: {content}')
+                # Parse the raw json into an object
+                content = json.loads(data)
+                logging.debug(
+                    f'Parsed json data for player {self.player_name}: {content}')
 
-            if 'isMember' in content[0]:
-                is_member = content[0]['isMember']
+                if 'isMember' in content[0]:
+                    is_member = content[0]['isMember']
 
-            # Continue with the parsed value
-            logging.debug(
-                f'Parsed value for player {self.player_name}: {is_member}')
+                # Continue with the parsed value
+                logging.debug(
+                    f'Parsed value for player {self.player_name}: {is_member}')
+        except aiohttp.client_exceptions.ServerDisconnectedError as server_disconnect:
+            logging.error(
+                f'Server disconnected session for player {self.player_name} with error: {server_disconnect}')
+            is_member = True
+        finally:
             return is_member
 
     @classmethod
