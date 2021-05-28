@@ -5,3 +5,6 @@ venv/
 *.md
 
 *.db
+
+# Ignore config files
+*.env
