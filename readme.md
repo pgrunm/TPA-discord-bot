@@ -13,7 +13,17 @@ python -m venv venv
 source ./venv/Scripts/activate
 ```
 
-- Run the bot with `python3 bot.py`
+- Run the bot with `python3 discord_bot.py`
+
+## Installation with Docker
+
+You can also run the bot with docker, in my case a Raspberry Pi (see [Dockerfile](Dockerfile.armv7)).
+
+**Recommended Settings**:
+
+- Setting the timezone i. e. Europe/Berlin
+- Mounting the bot to a folder inside the user's context
+- Limiting the restarts (3 in my case)
 
 ## Links
 
@@ -23,4 +33,4 @@ source ./venv/Scripts/activate
 - [Division 2 Tracker](https://tracker.gg/developers/docs/titles/division-2)
 - [Asyncio tutorial](https://realpython.com/async-io-python/)
 - [Peewee](https://docs.peewee-orm.com/en/latest/peewee/quickstart.html)
-- [ASCII Table](https://docs.astropy.org/en/stable/io/ascii/write.html)
+- [Advanced Python Scheduler](https://apscheduler.readthedocs.io/en/stable/)
