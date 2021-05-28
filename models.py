@@ -263,13 +263,22 @@ class Player(BaseModel):
     @classmethod
     async def get_player_weekly_xp_as_message(cls, player_limit=10):
         # Get current date and calculate the next thursday https://stackoverflow.com/a/8801197
+        today = datetime.date.today()
         d = datetime.date.today()
+        t = datetime.datetime.now()
+
         while d.weekday() != 3:
             d += datetime.timedelta(1)
 
         date_format = '%d.%m.%Y'
-        message = f'**Wöchentliche Clan XP**\n\n{d.strftime(date_format)} - {(d + datetime.timedelta(days=7)).strftime(date_format)}\n\n'
         counter = 1
+
+        if today.weekday() > 3 or (today.weekday() == 3 and t.hour < 10):
+            # After thursday / On Thursday before 10 o'clock
+            message = f'**Wöchentliche Clan XP**\n\n {(d - datetime.timedelta(days=7)).strftime(date_format)} - {d.strftime(date_format)}'
+        elif today.weekday() < 3 or (today.weekday() == 3 and t.hour >= 10):
+            # Before / On thursday after 10 o'clock
+            message = f'**Wöchentliche Clan XP**\n\n {d.strftime(date_format)} - {(d + datetime.timedelta(days=7)).strftime(date_format)}'
 
         # Get the xp of all the players, limit by the parameter player_limit
         for player in Player.select().where(Player.player_weekly_xp >= 0).order_by(Player.player_weekly_xp.desc()).limit(player_limit):
@@ -282,8 +291,7 @@ class Player(BaseModel):
 
             counter += 1
 
-        now = datetime.datetime.now().strftime('%d.%m.%Y %H:%M:%S')
-        message = message + f'\nLast Update: {now}'
+        message = message + f"\nLast Update: {t.strftime('%d.%m.%y%H:%M')}"
         return message
 
 
