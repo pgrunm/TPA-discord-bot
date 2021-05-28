@@ -202,6 +202,7 @@ class Player(BaseModel):
                     finally:
                         player.save()
 
+    @Limit(calls=20, period=60)
     async def check_player_exit(self, session):
         url = 'http://bot.thepenguinarmy.de/BotRequest/Member'
 
