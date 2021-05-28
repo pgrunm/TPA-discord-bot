@@ -65,6 +65,20 @@ async def new_xp_messages():
             msg.save()
 
 
+@bot.event
+async def on_message(message):
+    # Just in case there are any commands they need to be processed.
+    await bot.process_commands(message)
+
+    # If the bot receives a private message answer it.
+    if not message.guild:
+        if message.author.id != bot.user.id:
+            await message.author.send(f"Hallo {message.author}! Ich bin leider nur ein Bot, wenn du Fragen hast, wende dich an einen unserer Pinguine aus Fleisch und Blut. Danke! :-)")
+        else:
+            # If the message is from the bot we have to ignore it
+            return
+
+
 if __name__ == '__main__':
 
     # Load environmental variables
@@ -104,13 +118,13 @@ if __name__ == '__main__':
                       day_of_week='thu', minute=15, hour=10)
 
     # https://cron.help/#*/30_*_*_*_*
-    scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
+    # scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
 
-    # Update player data, https://cron.help/#15/30_*_*_*_*
-    scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
+    # # Update player data, https://cron.help/#15/30_*_*_*_*
+    # scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
 
-    # Retrieve new members
-    scheduler.add_job(Player.get_members, 'cron', minute=55)
+    # # Retrieve new members
+    # scheduler.add_job(Player.get_members, 'cron', minute=55)
 
     # Update weekly xp
     scheduler.add_job(Player.update_player_data, kwargs={
