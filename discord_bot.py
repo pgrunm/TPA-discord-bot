@@ -65,6 +65,15 @@ async def new_xp_messages():
             msg.save()
 
 
+@bot.command()
+async def xpmessage(ctx, *args):
+    if os.getenv('log_level').upper() == 'DEBUG':
+        await new_xp_messages()
+    else:
+        message = "Currently not in debugging mode, command not available!"
+        await ctx.send(message)
+
+
 @bot.event
 async def on_message(message):
     # Just in case there are any commands they need to be processed.
@@ -114,21 +123,29 @@ if __name__ == '__main__':
     # https://cron.help/
     scheduler = AsyncIOScheduler()
     # https://cron.help/#15_10_*_*_4
-    scheduler.add_job(new_xp_messages, 'cron',
-                      day_of_week='thu', minute=15, hour=10)
 
-    # https://cron.help/#*/30_*_*_*_*
-    scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
+    # Feature toggle disable_crons: Disables all cronjobs to better test settings and dont get into problems
+    # with production.
+    if os.getenv('enable_crons') == True:
+        logging.info('Enabling cronjobs...')
 
-    # Update player data, https://cron.help/#15/30_*_*_*_*
-    scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
+        scheduler.add_job(new_xp_messages, 'cron',
+                          day_of_week='thu', minute=15, hour=10)
 
-    # Retrieve new members
-    scheduler.add_job(Player.get_members, 'cron', minute=55)
+        # https://cron.help/#*/30_*_*_*_*
+        scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
 
-    # Update weekly xp
-    scheduler.add_job(Player.update_player_data, kwargs={
-        'update_weekly_xp': True}, trigger='cron',  day_of_week='thu', hour=10)
+        # Update player data, https://cron.help/#15/30_*_*_*_*
+        scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
+
+        # Retrieve new members
+        scheduler.add_job(Player.get_members, 'cron', minute=55)
+
+        # Update weekly xp
+        scheduler.add_job(Player.update_player_data, kwargs={
+            'update_weekly_xp': True}, trigger='cron',  day_of_week='thu', hour=10)
+    else:
+        logging.info('Starting with disabled cronjobs...')
 
     scheduler.start()
 
