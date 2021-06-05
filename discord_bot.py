@@ -93,10 +93,11 @@ if __name__ == '__main__':
 
     # Load environmental variables
     load_dotenv(override=True)
+    log_level = os.getenv('log_level').upper()
+    enable_crons = os.getenv('enable_crons')
 
     # Logging configuration
     log_file = 'bot.log'
-    log_level = os.getenv('log_level').upper()
     log_encoding = 'utf-8'
 
     # Create the logging handler
@@ -127,7 +128,7 @@ if __name__ == '__main__':
 
     # Feature toggle disable_crons: Disables all cronjobs to better test settings and dont get into problems
     # with production.
-    if os.getenv('enable_crons') == True:
+    if enable_crons == True:
         logging.info('Enabling cronjobs...')
 
         scheduler.add_job(new_xp_messages, 'cron',
