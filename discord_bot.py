@@ -67,11 +67,12 @@ async def new_xp_messages():
 
 @bot.command()
 async def xpmessage(ctx, *args):
-    if os.getenv('log_level').upper() == 'DEBUG':
+
+    if log_level.upper() == 'DEBUG':
         await new_xp_messages()
     else:
         message = "Currently not in debugging mode, command not available!"
-        await ctx.send(message)
+        await ctx.author.send(message)
 
 
 @bot.event
@@ -91,7 +92,7 @@ async def on_message(message):
 if __name__ == '__main__':
 
     # Load environmental variables
-    load_dotenv()
+    load_dotenv(override=True)
 
     # Logging configuration
     log_file = 'bot.log'
