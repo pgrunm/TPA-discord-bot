@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
     # Feature toggle disable_crons: Disables all cronjobs to better test settings and dont get into problems
     # with production.
-    if enable_crons == True:
+    if enable_crons == 'true':
         logging.info('Enabling cronjobs...')
 
         scheduler.add_job(new_xp_messages, 'cron',
