@@ -33,7 +33,6 @@ async def on_ready():
 
 async def update_xp_messages():
     # Edit message: https://stackoverflow.com/a/55711759
-    xp_msg = await Player.get_player_weekly_xp_as_message()
     for msg in Message.select():
         channel = bot.get_channel(msg.discord_channel_id)
 
@@ -43,8 +42,10 @@ async def update_xp_messages():
             logging.error(f'Failed to parse the msg id')
         else:
             if msg.description == 'member_clan_xp':
+                xp_msg = await Player.get_player_weekly_xp_as_message()
                 await xp_message.edit(embed=xp_msg)
             elif msg.description == 'admin_clan_xp':
+                xp_msg = await Player.get_player_weekly_xp_as_message(player_limit=-1)
                 await xp_message.edit(embed=xp_msg)
 
 
