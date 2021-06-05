@@ -6,6 +6,7 @@ from logging.handlers import RotatingFileHandler
 import discord
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from discord import Message
+from discord import message
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from peewee import CharField  # Required permissions: Server Members Intent
@@ -43,10 +44,10 @@ async def update_xp_messages():
         else:
             if msg.description == 'member_clan_xp':
                 xp_msg = await Player.get_player_weekly_xp_as_message()
-                await xp_message.edit(embed=xp_msg)
+                await xp_message.edit(embed=xp_msg, content=None)
             elif msg.description == 'admin_clan_xp':
                 xp_msg = await Player.get_player_weekly_xp_as_message(player_limit=-1)
-                await xp_message.edit(embed=xp_msg)
+                await xp_message.edit(embed=xp_msg, content=None)
 
 
 async def new_xp_messages():
