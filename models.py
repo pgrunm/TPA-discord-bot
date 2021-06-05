@@ -1,15 +1,16 @@
 import asyncio
 import datetime
 import json
-import locale
 import logging
 import os
 import time
 from json.decoder import JSONDecodeError
 
 import aiohttp
+import discord
+from discord.ext.commands.bot import Bot
 from peewee import (AutoField, DoesNotExist, IntegerField, Model,
-                    SqliteDatabase, TextField)
+                    SqliteDatabase, TextField, Value)
 
 database = SqliteDatabase('tpa.db')
 
@@ -275,24 +276,48 @@ class Player(BaseModel):
 
         if today.weekday() > 3 or (today.weekday() == 3 and t.hour < 10):
             # After thursday / On Thursday before 10 o'clock
-            message = f'**Wöchentliche Clan XP**\n\n{(d - datetime.timedelta(days=7)).strftime(date_format)} - {d.strftime(date_format)}\n\n'
+            date = f'{(d - datetime.timedelta(days=7)).strftime(date_format)} - {d.strftime(date_format)}'
         elif today.weekday() < 3 or (today.weekday() == 3 and t.hour >= 10):
             # Before / On thursday after 10 o'clock
-            message = f'**Wöchentliche Clan XP**\n\n{d.strftime(date_format)} - {(d + datetime.timedelta(days=7)).strftime(date_format)}\n\n'
+            date = f'{d.strftime(date_format)} - {(d + datetime.timedelta(days=7)).strftime(date_format)}'
 
-        # Get the xp of all the players, limit by the parameter player_limit
-        for player in Player.select().where(Player.player_weekly_xp >= 0).order_by(Player.player_weekly_xp.desc()).limit(player_limit):
+        # Create the embed, set the icon and fill it with content
+        embed = discord.Embed(title="Wöchentliche Clan XP",
+                              description=date, color=0x0066ff)
+        embed.set_thumbnail(
+            url="https://cdn.discordapp.com/icons/346339932647981057/98ee3738aa3e46b268677972637c4c7b.webp")
 
-            # Added the player's xp to the message
-            # Mention the player: https://stackoverflow.com/a/43991145
-            # Formatting the XP: https://stackoverflow.com/a/48414649
-            message = message + \
-                f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(player.player_weekly_xp).replace(',', '.')}\n"
+        # How many embed fields are necessary?
+        if player_limit == -1:
+            number_of_required_fields = round(
+                Player.select().count(database=None) / 10)
+            player_limit = 'Total'
+        else:
+            number_of_required_fields = round(
+                player_limit / 10)
 
-            counter += 1
+        for field_counter in range(1, number_of_required_fields + 1):
 
-        message = message + f"\nLast Update: {t.strftime('%d.%m.%y %H:%M')}"
-        return message
+            field = ''
+            # Get the xp of all the players, limit by the parameter player_limit
+            for player in Player.select().where(Player.player_weekly_xp >= 0 | Player.player_discord_id != None).order_by(Player.player_weekly_xp.desc()).paginate(field_counter, paginate_by=10):
+
+                # Added the player's xp to the message
+                # Mention the player: https://stackoverflow.com/a/43991145
+                # Formatting the XP: https://stackoverflow.com/a/48414649
+
+                # Formatting the embed: https://cog-creators.github.io/discord-embed-sandbox/
+                field += f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(player.player_weekly_xp).replace(',', '.')}\n"
+
+                counter += 1
+            if field_counter == 1:
+                embed.add_field(name=f'Top {player_limit}',
+                                value="\n\u200b" + field, inline=False)
+            else:
+                embed.add_field(name=f'\u200b\n',
+                                value=field, inline=False)
+        embed.set_footer(text=f"Last Update: {t.strftime('%d.%m.%y %H:%M')}")
+        return embed
 
 
 class Message(BaseModel):
