@@ -314,8 +314,10 @@ class Player(BaseModel):
                 embed.add_field(name=f'Top {player_limit}',
                                 value="\n\u200b" + field, inline=False)
             else:
-                embed.add_field(name=f'\u200b\n',
-                                value=field, inline=False)
+                # Only add the fields if its not empty
+                if field != '':
+                    embed.add_field(name=f'\u200b\n',
+                                    value=field, inline=False)
         embed.set_footer(text=f"Last Update: {t.strftime('%d.%m.%y %H:%M')}")
         return embed
 
