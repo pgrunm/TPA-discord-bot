@@ -259,7 +259,7 @@ class Player(BaseModel):
                         f'Deleting player {player.player_name} from database')
 
                     # Delete the player from database
-                    Player.delete().where(Player.player_ubi_id == player.player_ubi_id)
+                    player.delete_instance()
 
     @classmethod
     async def get_player_weekly_xp_as_message(cls, player_limit=10):
