@@ -191,29 +191,25 @@ class Player(BaseModel):
                     discord_id = user['Discord']['officialAccountId']
 
                     # Try to find the user inside the database
-                    try:
-                        player = Player.get(Player.player_name ==
-                                            nickname or Player.player_ubi_id == ubi_id)
+                    player, created = Player.get_or_create(
+                        player_ubi_id=ubi_id,
+                        defaults={'player_name': nickname, 'player_xp': 0, 'player_discord_id': discord_id})
 
+                    if created == False:
                         # Save the Ubisoft ID and if the name has changed also the name.
-                        player.player_name = nickname
-                        player.player_ubi_id = ubi_id
+                        if player.player_name != nickname:
+                            player.player_name = nickname
+
+                        # Check if the ubi id is different
+                        if player.player_ubi_id == None:
+                            player.player_ubi_id = ubi_id
 
                         # Check if the Discord id is empty
                         if player.player_discord_id == None:
                             player.player_discord_id = discord_id
 
-                    # If the player does not exists yet we have to create it
-                    except DoesNotExist:
-                        player = Player(player_name=nickname,
-                                        player_xp=0, player_ubi_id=ubi_id, player_discord_id=discord_id)
-
-                        logging.debug(
-                            f"Spieler {nickname} does not exist, creating it with Ubisoft ID {ubi_id}...")
-
-                    # Save the changes to the database
-                    finally:
-                        player.save()
+                    # Finally save the player to the database
+                    player.save()
 
     @Limit(calls=20, period=60)
     async def check_player_exit(self, session):
