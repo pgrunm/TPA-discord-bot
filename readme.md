@@ -34,3 +34,4 @@ You can also run the bot with docker, in my case a Raspberry Pi (see [Dockerfile
 - [Asyncio tutorial](https://realpython.com/async-io-python/)
 - [Peewee](https://docs.peewee-orm.com/en/latest/peewee/quickstart.html)
 - [Advanced Python Scheduler](https://apscheduler.readthedocs.io/en/stable/)
+- [Todo List](https://discord.com/channels/346339932647981057/799335614356127755/799338507490426930)
