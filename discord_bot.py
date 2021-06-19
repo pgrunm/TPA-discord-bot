@@ -67,6 +67,13 @@ async def new_xp_messages():
             msg.save()
 
 
+async def disable_update_cron(deactivate=True):
+    if deactivate == True:
+        logging.debug('Cronjob deactivated.')
+    else:
+        logging.debug('Cronjob activated.')
+
+
 @bot.command()
 async def xpmessage(ctx, *args):
 
@@ -139,15 +146,24 @@ if __name__ == '__main__':
         # https://cron.help/#*/30_*_*_*_*
         scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
 
+        '''
+        # Deactivate the above scheduler
+        scheduler.add_job(disable_update_cron, 'cron', minute='*/2')
+        # And reactivate it afterwards
+        scheduler.add_job(disable_update_cron, 'cron', kwargs={
+            'deactivate': True}, minute='*/3')
+        '''
+
         # Update player data, https://cron.help/#15/30_*_*_*_*
-        scheduler.add_job(Player.update_player_data, 'cron', minute='15/30')
+        scheduler.add_job(Player.update_player_data, kwargs={
+            'bot': bot}, trigger='cron', minute='15/30')
 
         # Retrieve new members
         scheduler.add_job(Player.get_members, 'cron', minute=55)
 
         # Update weekly xp
         scheduler.add_job(Player.update_player_data, kwargs={
-            'update_weekly_xp': True}, trigger='cron',  day_of_week='thu', hour=10)
+            'update_weekly_xp': True, 'bot': bot}, trigger='cron',  day_of_week='thu', hour=10)
     else:
         logging.info('Starting with disabled cronjobs...')
 

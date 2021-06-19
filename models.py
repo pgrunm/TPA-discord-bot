@@ -8,6 +8,7 @@ from json.decoder import JSONDecodeError
 
 import aiohttp
 import discord
+from discord import player
 from discord.ext.commands.bot import Bot
 from peewee import (AutoField, DoesNotExist, IntegerField, Model,
                     SqliteDatabase, TextField, Value)
@@ -79,14 +80,23 @@ class Player(BaseModel):
                 logging.debug(
                     f"Remaining Requests per minute: {response.headers['X-RateLimit-Remaining-minute']}")
 
-            # Return the response text
-            return await response.text()
+            # Check the status code
+            # Status codes which indicate an error
+            error_codes = [400, 404, 500]
+            if response.status == 200:
+                # Return the response text
+                return await response.text()
+            elif response.status in error_codes:
+                raise LookupError('Invalid username!')
 
     @staticmethod
     @Limit(calls=20, period=60)
     async def call_api(session, url, headers):
-        html = await Player.fetch(session=session, url=url, headers=headers)
-        return html
+        try:
+            html = await Player.fetch(session=session, url=url, headers=headers)
+            return html
+        except LookupError as player_error:
+            raise player_error
 
     async def update_player_xp(self, session, update_weekly_xp=False):
         '''Retrieves the current amount of xp of a player'''
@@ -104,6 +114,8 @@ class Player(BaseModel):
             logging.error(
                 f'Error while decoding content for player {self.player_name}. Error: {json_decode_error}')
 
+        except LookupError as player_error:
+            raise player_error
         # Code will be run if there was no exception
         else:
             try:
@@ -242,7 +254,7 @@ class Player(BaseModel):
             return is_member
 
     @classmethod
-    async def update_player_data(cls, update_weekly_xp=False):
+    async def update_player_data(cls, bot, update_weekly_xp=False):
         async with aiohttp.ClientSession() as session:
             for player in Player.select():
 
@@ -251,9 +263,19 @@ class Player(BaseModel):
 
                 if is_member == True:
                     logging.debug(f'Updating player data for {player}')
-                    await player.update_player_xp(session, update_weekly_xp=update_weekly_xp)
-                    logging.debug(
-                        f'Finished updating player data for player {player}')
+
+                    try:
+                        await player.update_player_xp(session, update_weekly_xp=update_weekly_xp)
+                        logging.debug(
+                            f'Finished updating player data for player {player}')
+                    except LookupError:
+                        logging.warning(
+                            f'Player {Player.player_name} probably changed the name')
+
+                        # Send a message into the chat
+                        channel = bot.get_channel(797970880089161758)
+                        await channel.send(f'Warnung: Spieler <@{player.player_discord_id}> ({player.player_name}) hat den Namen geändert!')
+
                 else:
                     logging.debug(
                         f'Deleting player {player.player_name} from database')
