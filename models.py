@@ -87,7 +87,8 @@ class Player(BaseModel):
                 # Return the response text
                 return await response.text()
             elif response.status in error_codes:
-                raise LookupError('Invalid username!')
+                raise LookupError(
+                    f'HTTP statuscode {response.status}, reason: {response.reason} for {url}')
 
     @staticmethod
     @Limit(calls=20, period=60)
@@ -106,9 +107,9 @@ class Player(BaseModel):
 
         url = f'https://public-api.tracker.gg/v2/division-2/standard/profile/uplay/{self.player_name}'
 
-        # Parse the output, required attribute: xPClan
-        raw_json = await Player.call_api(session, url, headers)
         try:
+            # Parse the output, required attribute: xPClan
+            raw_json = await Player.call_api(session, url, headers)
             content = json.loads(raw_json)
         except JSONDecodeError as json_decode_error:
             logging.error(
@@ -264,13 +265,17 @@ class Player(BaseModel):
                         await player.update_player_xp(session, update_weekly_xp=update_weekly_xp)
                         logging.debug(
                             f'Finished updating player data for player {player}')
-                    except LookupError:
-                        logging.warning(
-                            f'Player {Player.player_name} probably changed the name')
+                    except LookupError as err:
+                        # Log this error
+                        logging.error(
+                            f'Player {Player.player_name} probably changed the name: {err}')
 
-                        # Send a message into the chat
-                        channel = bot.get_channel(797970880089161758)
-                        await channel.send(f'Warnung: Spieler <@{player.player_discord_id}> ({player.player_name}) hat den Namen geändert!')
+                        # Only send a warning if this is true
+                        enable_name_warning = os.getenv('enable_name_warning')
+                        if enable_name_warning == 'true':
+                            # Send a message into the chat
+                            channel = bot.get_channel(797970880089161758)
+                            await channel.send(f'Warnung: Spieler <@{player.player_discord_id}> ({player.player_name}) hat den Namen geändert!')
 
                 else:
                     logging.debug(
