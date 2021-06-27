@@ -214,7 +214,7 @@ class Player(BaseModel):
 
     @Limit(calls=20, period=60)
     async def check_player_exit(self, session):
-        url = 'http://bot.thepenguinarmy.de/BotRequest/Member'
+        url = 'http://cv.thepenguinarmy.de/BotRequest/Member'
 
         # Basic Auth from env file
         auth = aiohttp.BasicAuth(login=os.getenv('member_username'),
