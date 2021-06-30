@@ -330,8 +330,11 @@ class Player(BaseModel):
                 # Mention the player: https://stackoverflow.com/a/43991145
                 # Formatting the XP: https://stackoverflow.com/a/48414649
 
+                # Calculate the actual XP to display inside the message
+                xp_to_display = player.player_weekly_xp - player.player_xp
+
                 # Formatting the embed: https://cog-creators.github.io/discord-embed-sandbox/
-                field += f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(player.player_weekly_xp).replace(',', '.')}\n"
+                field += f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(xp_to_display).replace(',', '.')}\n"
 
                 counter += 1
             if field_counter == 1:
