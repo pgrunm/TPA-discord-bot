@@ -133,7 +133,7 @@ class Player(BaseModel):
             finally:
                 # Check if there is a value, if not set it to 0
                 if value_clan_xp == None:
-                    logging.debug(
+                    logging.warning(
                         f'Clan XP for player {self.player_name} was Null, setting it to 0')
                     value_clan_xp = 0
 
@@ -141,14 +141,15 @@ class Player(BaseModel):
                 if self.player_xp == 0:
                     self.player_xp = value_clan_xp
 
+                '''
+                Database fields
+                Weekly XP: Clan XP earned so far this 
+                Player XP: Total XP earned by a player
+                '''
                 # Calculate the XP difference and update the value inside the DB
-                diff_xp = value_clan_xp - self.player_xp
-                self.player_weekly_xp = diff_xp
+                self.player_weekly_xp = value_clan_xp
 
-                logging.debug(
-                    f'Adding {diff_xp} xp for player {self.player_name} data to database')
-
-                # Overwrite the weekly XP if update_weekly_xp = True
+                # Overwrite the weekly XP if update_weekly_xp = True -> this only occurs on Thursdays
                 if update_weekly_xp == True:
                     logging.debug(
                         f'Updating weekly xp for player {self.player_name}')
