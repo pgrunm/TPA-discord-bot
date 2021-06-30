@@ -31,6 +31,20 @@ async def on_ready():
 
     logging.info('Logged in as {0.user}'.format(bot))
 
+'''
+# https://stackoverflow.com/a/62496039
+@client.event
+async def on_member_update(before, after):
+    if len(before.roles) < len(after.roles):
+        # The user has gained a new role, so lets find out which one
+        newRole = next(
+            role for role in after.roles if role not in before.roles)
+
+        if newRole.name == "Respected":
+            # This uses the name but you could always use newRole.id == Roleid here
+            # Now, simply put the code you want to run whenever someone gets the "Respected" role here
+'''
+
 
 async def update_xp_messages():
     # Edit message: https://stackoverflow.com/a/55711759
@@ -143,8 +157,9 @@ if __name__ == '__main__':
         scheduler.add_job(new_xp_messages, 'cron',
                           day_of_week='thu', minute=15, hour=10)
 
-        # https://cron.help/#*/30_*_*_*_*
-        scheduler.add_job(update_xp_messages, 'cron', minute='*/30')
+        # https://cron.help/#*/30_0-9,11_*_*_*
+        scheduler.add_job(update_xp_messages, 'cron',
+                          minute='*/30', hour='0-9,11-24')
 
         '''
         # Deactivate the above scheduler
