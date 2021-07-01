@@ -159,7 +159,7 @@ if __name__ == '__main__':
 
         # https://cron.help/#*/30_0-9,11_*_*_*
         scheduler.add_job(update_xp_messages, 'cron',
-                          minute='*/30', hour='0-9,11-24')
+                          minute='*/30', hour='0-9,11-23')
 
         '''
         # Deactivate the above scheduler
