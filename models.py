@@ -332,6 +332,10 @@ class Player(BaseModel):
                 # XP calculation is done by subtracting the columns player_weekly_xp and player_xp
                 xp_to_display = player.sql_weekly_xp
 
+                # Check the player name for underscores and escape them if necessary
+                if r'_' in player.player_name:
+                    player.player_name = player.player_name.replace('_', r'\_')
+
                 # Formatting the embed: https://cog-creators.github.io/discord-embed-sandbox/
                 field += f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(xp_to_display).replace(',', '.')}\n"
 
