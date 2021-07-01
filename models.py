@@ -8,10 +8,8 @@ from json.decoder import JSONDecodeError
 
 import aiohttp
 import discord
-from discord import player
-from discord.ext.commands.bot import Bot
-from peewee import (AutoField, DoesNotExist, IntegerField, Model,
-                    SqliteDatabase, TextField, Value)
+from peewee import (AutoField, IntegerField, Model,
+                    SqliteDatabase, TextField, SQL)
 
 database = SqliteDatabase('tpa.db')
 
@@ -324,14 +322,15 @@ class Player(BaseModel):
 
             field = ''
             # Get the xp of all the players, limit by the parameter player_limit
-            for player in Player.select().where(Player.player_weekly_xp >= 0 | Player.player_discord_id != None).order_by(Player.player_weekly_xp.desc()).paginate(field_counter, paginate_by=10):
+            for player in Player.select(Player.player_name, Player.player_discord_id, Player.player_id, (Player.player_weekly_xp - Player.player_xp).alias('sql_weekly_xp')
+                                        ).where(Player.player_discord_id != None).order_by(SQL('sql_weekly_xp').desc()).paginate(field_counter, paginate_by=10):
 
                 # Added the player's xp to the message
                 # Mention the player: https://stackoverflow.com/a/43991145
                 # Formatting the XP: https://stackoverflow.com/a/48414649
 
-                # Calculate the actual XP to display inside the message
-                xp_to_display = player.player_weekly_xp - player.player_xp
+                # XP calculation is done by subtracting the columns player_weekly_xp and player_xp
+                xp_to_display = player.sql_weekly_xp
 
                 # Formatting the embed: https://cog-creators.github.io/discord-embed-sandbox/
                 field += f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(xp_to_display).replace(',', '.')}\n"
