@@ -1,59 +1,18 @@
-import asyncio
 import datetime
 import json
 import logging
 import os
-import time
 from json.decoder import JSONDecodeError
 
 import aiohttp
 import discord
-from peewee import (AutoField, IntegerField, Model,
-                    SqliteDatabase, TextField, SQL)
+from peewee import SQL, AutoField, IntegerField, TextField
 
-database = SqliteDatabase('tpa.db')
-
-
-class Limit(object):
-    def __init__(self, calls=5, period=1):
-        self.calls = calls
-        self.period = period
-        self.clock = time.monotonic
-        self.last_reset = 0
-        self.num_calls = 0
-
-    def __call__(self, func):
-        async def wrapper(*args, **kwargs):
-            if self.num_calls >= self.calls:
-                await asyncio.sleep(self.__period_remaining())
-
-            period_remaining = self.__period_remaining()
-
-            if period_remaining <= 0:
-                self.num_calls = 0
-                self.last_reset = self.clock()
-
-            self.num_calls += 1
-
-            return await func(*args, **kwargs)
-
-        return wrapper
-
-    def __period_remaining(self):
-        elapsed = self.clock() - self.last_reset
-        return self.period - elapsed
+from models.BaseModel import BaseModel
+from models.Limit.Limit import Limit
 
 
-class UnknownField(object):
-    def __init__(self, *_, **__): pass
-
-
-class BaseModel(Model):
-    class Meta:
-        database = database
-
-
-class Player(BaseModel):
+class Player(BaseModel.BaseModel):
     player_id = AutoField(null=True)
     player_name = TextField(null=True, unique=True)
     player_xp = IntegerField(null=True)
@@ -350,16 +309,3 @@ class Player(BaseModel):
                                     value=field, inline=False)
         embed.set_footer(text=f"Last Update: {t.strftime('%d.%m.%y %H:%M')}")
         return embed
-
-
-class Message(BaseModel):
-    message_id = AutoField(null=True)
-    discord_message_id = IntegerField(null=True)
-    description = TextField(null=True)
-    discord_channel_id = IntegerField(null=True)
-
-    class Meta:
-        table_name = 'discord_messages'
-
-    def __str__(self):
-        return f'Discord Message ID: {self.discord_message_id}, Description {self.description}'

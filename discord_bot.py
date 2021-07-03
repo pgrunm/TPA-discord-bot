@@ -9,11 +9,11 @@ from discord import Message
 from discord import message
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
-from peewee import CharField  # Required permissions: Server Members Intent
-from peewee import (DateField, DoesNotExist, ForeignKeyField, Model,
-                    SqliteDatabase)
+from peewee import SqliteDatabase
 
-from models import Message, Player
+# from models import Player, Message
+import models.Player
+import models.Message
 
 intents = discord.Intents.default()
 intents.members = True
@@ -48,7 +48,7 @@ async def on_member_update(before, after):
 
 async def update_xp_messages():
     # Edit message: https://stackoverflow.com/a/55711759
-    for msg in Message.select():
+    for msg in models.Message.Message.select():
         channel = bot.get_channel(msg.discord_channel_id)
 
         try:
@@ -57,22 +57,22 @@ async def update_xp_messages():
             logging.error(f'Failed to parse the msg id')
         else:
             if msg.description == 'member_clan_xp':
-                xp_msg = await Player.get_player_weekly_xp_as_message()
+                xp_msg = await models.Player.Player.get_player_weekly_xp_as_message()
                 await xp_message.edit(embed=xp_msg, content=None)
             elif msg.description == 'admin_clan_xp':
-                xp_msg = await Player.get_player_weekly_xp_as_message(player_limit=-1)
+                xp_msg = await models.Player.Player.get_player_weekly_xp_as_message(player_limit=-1)
                 await xp_message.edit(embed=xp_msg, content=None)
 
 
 async def new_xp_messages():
-    for msg in Message.select():
+    for msg in models.Message.Message.select():
         channel = bot.get_channel(msg.discord_channel_id)
         if msg.description == 'member_clan_xp':
-            xp_msg = await Player.get_player_weekly_xp_as_message()
+            xp_msg = await models.Player.Player.get_player_weekly_xp_as_message()
             sent_message = await channel.send(embed=xp_msg)
 
         elif msg.description == 'admin_clan_xp':
-            xp_msg = await Player.get_player_weekly_xp_as_message(player_limit=-1)
+            xp_msg = await models.Player.Player.get_player_weekly_xp_as_message(player_limit=-1)
             sent_message = await channel.send(embed=xp_msg)
 
         if sent_message != None:
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     logging.debug('Creating connection to database...')
     db.connect()
     logging.debug('Creating missing tables...')
-    db.create_tables(models=[Player, Message])
+    db.create_tables(models=[models.Player.Player, models.Message.Message])
 
     # Scheduler for timing events
     # how to add jobs: https://apscheduler.readthedocs.io/en/stable/userguide.html#adding-jobs
@@ -170,14 +170,14 @@ if __name__ == '__main__':
         '''
 
         # Update player data, https://cron.help/#15/30_*_*_*_*
-        scheduler.add_job(Player.update_player_data, kwargs={
+        scheduler.add_job(models.Player.Player.update_player_data, kwargs={
             'bot': bot}, trigger='cron', minute='15/30')
 
         # Retrieve new members
-        scheduler.add_job(Player.get_members, 'cron', minute=55)
+        scheduler.add_job(models.Player.Player.get_members, 'cron', minute=55)
 
         # Update weekly xp
-        scheduler.add_job(Player.update_player_data, kwargs={
+        scheduler.add_job(models.Player.Player.update_player_data, kwargs={
             'update_weekly_xp': True, 'bot': bot}, trigger='cron',  day_of_week='thu', hour=10)
     else:
         logging.info('Starting with disabled cronjobs...')
