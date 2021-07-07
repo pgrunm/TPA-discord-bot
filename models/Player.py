@@ -195,8 +195,16 @@ class Player(BaseModel.BaseModel):
                 logging.debug(
                     f'Parsed json data for player {self.player_name}: {content}')
 
-                if 'isMember' in content[0]:
-                    is_member = content[0]['isMember']
+                if '1' in content[0]['Ubisoft']['games']:
+                    # Check if there is a isMember flag inside and loop through the characters
+                    char = list(content[0]['Ubisoft']['games']
+                                ['1']['characters'].keys())
+                    if 'isMember' in content[0]['Ubisoft']['games']['1']['characters'][char[0]]:
+                        is_member = content[0]['Ubisoft']['games']['1']['characters'][char[0]]['isMember']
+                    else:
+                        # Log an error if there is no isMember value inside
+                        logging.error(
+                            f"No isMember value for player {self.player_name}")
 
                 # Continue with the parsed value
                 logging.debug(
