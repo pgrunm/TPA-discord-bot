@@ -226,7 +226,7 @@ class Player(BaseModel.BaseModel):
                     except LookupError as err:
                         # Log this error
                         logging.error(
-                            f'Player {Player.player_name} probably changed the name: {err}')
+                            f'Player {player.player_name} probably changed the name: {err}')
 
                         # Only send a warning if this is true
                         enable_name_warning = os.getenv('enable_name_warning')
