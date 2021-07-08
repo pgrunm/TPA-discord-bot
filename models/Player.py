@@ -303,6 +303,11 @@ class Player(BaseModel.BaseModel):
                 if r'_' in player.player_name:
                     player.player_name = player.player_name.replace('_', r'\_')
 
+                # Check if the player's weekly XP is negative, as this can happen if the source server from tracker network
+                # sends weird data.
+                if xp_to_display < 0:
+                    xp_to_display = 0
+
                 # Formatting the embed: https://cog-creators.github.io/discord-embed-sandbox/
                 field += f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(xp_to_display).replace(',', '.')}\n"
 
