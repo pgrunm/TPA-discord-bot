@@ -10,6 +10,7 @@ from peewee import SQL, AutoField, IntegerField, TextField
 
 from models.BaseModel import BaseModel
 from models.Limit.Limit import Limit
+from models.Tools.Network import fetch
 
 
 class Player(BaseModel.BaseModel):
@@ -27,31 +28,10 @@ class Player(BaseModel.BaseModel):
         return f'Player: {self.player_name}, ID {self.player_id}'
 
     @staticmethod
-    async def fetch(session, url, headers=''):
-        # https://docs.aiohttp.org/en/stable/http_request_lifecycle.html#how-to-use-the-clientsession
-        '''Allows retrieval of a url with a session added
-        '''
-        async with session.get(url, headers=headers) as response:
-            logging.debug(f"HTTP Status for {url}: {response.status}")
-            if 'X-RateLimit-Remaining-minute' in response.headers:
-                logging.debug(
-                    f"Remaining Requests per minute: {response.headers['X-RateLimit-Remaining-minute']}")
-
-            # Check the status code
-            # Status codes which indicate an error
-            error_codes = [400, 404, 500]
-            if response.status == 200:
-                # Return the response text
-                return await response.text()
-            elif response.status in error_codes:
-                raise LookupError(
-                    f'HTTP statuscode {response.status}, reason: {response.reason} for {url}')
-
-    @staticmethod
     @Limit(calls=20, period=60)
     async def call_api(session, url, headers):
         try:
-            html = await Player.fetch(session=session, url=url, headers=headers)
+            html = await fetch(session=session, url=url, headers=headers)
             return html
         except LookupError as player_error:
             raise player_error
