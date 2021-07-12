@@ -80,7 +80,7 @@ class Player(BaseModel.BaseModel):
 
                 '''
                 Database fields
-                Weekly XP: Clan XP earned so far this 
+                Weekly XP: Clan XP earned so far this
                 Player XP: Total XP earned by a player
                 '''
                 # Calculate the XP difference and update the value inside the DB
@@ -100,7 +100,56 @@ class Player(BaseModel.BaseModel):
                 # Write the XP to database
                 self.save()
 
-    @staticmethod
+    async def upload_player_weekly_xp(self, session):
+        '''
+        Upload player's weekly XP data to TPA community site.
+        '''
+        # Requireded Configuration
+        upload_url = "http://cv.thepenguinarmy.de/BotRequest/Activity"
+        # Basic Auth from env file
+        auth = aiohttp.BasicAuth(login=os.getenv('member_username'),
+                                 password=os.getenv('member_pw'))
+        t = datetime.datetime.now()
+
+        # Create the JSON dict
+
+        # Required Parameters:
+        # Value: Weekly XP Value
+        # GameID: 1
+        # accountTypName: Ubisoft
+        # officialAccountId: Account ID
+        # Accountname: Name of the account, but not necessary
+
+        # Calculate the XP
+        xp_value = self.player_weekly_xp - self.player_xp
+
+        if(xp_value > 0):
+            json_upload_content = {
+                'gameId': 1,
+                'officialAccountId': self.player_ubi_id,
+                'accountTypName': 'Ubisoft',
+                'value': xp_value,
+                'dateTime':  t.strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+            logging.debug(
+                f'Trying to upload weekly XP stats for user {self.player_name} with ubi id {self.player_ubi_id}. JSON Content: {json_upload_content}')
+
+            # Try to submit data
+            try:
+                async with session.post(upload_url, json=json_upload_content, auth=auth) as resp:
+                    # Await the reponse
+                    return_msg = await resp.text()
+
+                    # If the HTTP Status code is different from 200 log it
+                    if resp.status != 200:
+                        logging.error(return_msg)
+
+            except aiohttp.client_exceptions.ServerDisconnectedError as server_disconnect:
+                logging.error(
+                    f'Server disconnected session for player {self.player_name} with error: {server_disconnect}')
+
+    @ staticmethod
     async def get_members():
         url = 'http://cv.thepenguinarmy.de/BotRequest/AllMember'
 
