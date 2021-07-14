@@ -150,6 +150,14 @@ class Player(BaseModel.BaseModel):
                 logging.error(
                     f'Server disconnected session for player {self.player_name} with error: {server_disconnect}')
 
+    @classmethod
+    async def upload_player_data(cls):
+        async with aiohttp.ClientSession() as session:
+            for player in Player.select():
+                logging.debug(
+                    f'Uploading weekly XP data for player {player.player_name}')
+                player.upload_player_weekly_xp(session)
+
     @staticmethod
     async def get_members():
         url = 'http://cv.thepenguinarmy.de/BotRequest/AllMember'
