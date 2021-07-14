@@ -100,6 +100,7 @@ class Player(BaseModel.BaseModel):
                 # Write the XP to database
                 self.save()
 
+    @Limit(calls=20, period=60)
     async def upload_player_weekly_xp(self, session):
         '''
         Upload player's weekly XP data to TPA community site.
@@ -149,7 +150,7 @@ class Player(BaseModel.BaseModel):
                 logging.error(
                     f'Server disconnected session for player {self.player_name} with error: {server_disconnect}')
 
-    @ staticmethod
+    @staticmethod
     async def get_members():
         url = 'http://cv.thepenguinarmy.de/BotRequest/AllMember'
 
