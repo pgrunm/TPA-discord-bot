@@ -1,59 +1,19 @@
-import asyncio
 import datetime
 import json
 import logging
 import os
-import time
 from json.decoder import JSONDecodeError
 
 import aiohttp
 import discord
-from peewee import (AutoField, IntegerField, Model,
-                    SqliteDatabase, TextField, SQL)
+from peewee import SQL, AutoField, IntegerField, TextField
 
-database = SqliteDatabase('tpa.db')
-
-
-class Limit(object):
-    def __init__(self, calls=5, period=1):
-        self.calls = calls
-        self.period = period
-        self.clock = time.monotonic
-        self.last_reset = 0
-        self.num_calls = 0
-
-    def __call__(self, func):
-        async def wrapper(*args, **kwargs):
-            if self.num_calls >= self.calls:
-                await asyncio.sleep(self.__period_remaining())
-
-            period_remaining = self.__period_remaining()
-
-            if period_remaining <= 0:
-                self.num_calls = 0
-                self.last_reset = self.clock()
-
-            self.num_calls += 1
-
-            return await func(*args, **kwargs)
-
-        return wrapper
-
-    def __period_remaining(self):
-        elapsed = self.clock() - self.last_reset
-        return self.period - elapsed
+from models.BaseModel import BaseModel
+from models.Limit.Limit import Limit
+from models.Tools.Network import fetch
 
 
-class UnknownField(object):
-    def __init__(self, *_, **__): pass
-
-
-class BaseModel(Model):
-    class Meta:
-        database = database
-
-
-class Player(BaseModel):
+class Player(BaseModel.BaseModel):
     player_id = AutoField(null=True)
     player_name = TextField(null=True, unique=True)
     player_xp = IntegerField(null=True)
@@ -68,31 +28,10 @@ class Player(BaseModel):
         return f'Player: {self.player_name}, ID {self.player_id}'
 
     @staticmethod
-    async def fetch(session, url, headers=''):
-        # https://docs.aiohttp.org/en/stable/http_request_lifecycle.html#how-to-use-the-clientsession
-        '''Allows retrieval of a url with a session added
-        '''
-        async with session.get(url, headers=headers) as response:
-            logging.debug(f"HTTP Status for {url}: {response.status}")
-            if 'X-RateLimit-Remaining-minute' in response.headers:
-                logging.debug(
-                    f"Remaining Requests per minute: {response.headers['X-RateLimit-Remaining-minute']}")
-
-            # Check the status code
-            # Status codes which indicate an error
-            error_codes = [400, 404, 500]
-            if response.status == 200:
-                # Return the response text
-                return await response.text()
-            elif response.status in error_codes:
-                raise LookupError(
-                    f'HTTP statuscode {response.status}, reason: {response.reason} for {url}')
-
-    @staticmethod
     @Limit(calls=20, period=60)
     async def call_api(session, url, headers):
         try:
-            html = await Player.fetch(session=session, url=url, headers=headers)
+            html = await fetch(session=session, url=url, headers=headers)
             return html
         except LookupError as player_error:
             raise player_error
@@ -141,7 +80,7 @@ class Player(BaseModel):
 
                 '''
                 Database fields
-                Weekly XP: Clan XP earned so far this 
+                Weekly XP: Clan XP earned so far this
                 Player XP: Total XP earned by a player
                 '''
                 # Calculate the XP difference and update the value inside the DB
@@ -160,6 +99,64 @@ class Player(BaseModel):
 
                 # Write the XP to database
                 self.save()
+
+    @Limit(calls=20, period=60)
+    async def upload_player_weekly_xp(self, session):
+        '''
+        Upload player's weekly XP data to TPA community site.
+        '''
+        # Requireded Configuration
+        upload_url = "http://cv.thepenguinarmy.de/BotRequest/Activity"
+        # Basic Auth from env file
+        auth = aiohttp.BasicAuth(login=os.getenv('member_username'),
+                                 password=os.getenv('member_pw'))
+        t = datetime.datetime.now()
+
+        # Create the JSON dict
+
+        # Required Parameters:
+        # Value: Weekly XP Value
+        # GameID: 1
+        # accountTypName: Ubisoft
+        # officialAccountId: Account ID
+        # Accountname: Name of the account, but not necessary
+
+        # Calculate the XP
+        xp_value = self.player_weekly_xp - self.player_xp
+
+        if(xp_value > 0):
+            json_upload_content = {
+                'gameId': 1,
+                'officialAccountId': self.player_ubi_id,
+                'accountTypName': 'Ubisoft',
+                'value': xp_value,
+                'dateTime':  t.strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+            logging.debug(
+                f'Trying to upload weekly XP stats for user {self.player_name} with ubi id {self.player_ubi_id}. JSON Content: {json_upload_content}')
+
+            # Try to submit data
+            try:
+                async with session.post(upload_url, json=json_upload_content, auth=auth) as resp:
+                    # Await the reponse
+                    return_msg = await resp.text()
+
+                    # If the HTTP Status code is different from 200 log it
+                    if resp.status != 200:
+                        logging.error(return_msg)
+
+            except aiohttp.client_exceptions.ServerDisconnectedError as server_disconnect:
+                logging.error(
+                    f'Server disconnected session for player {self.player_name} with error: {server_disconnect}')
+
+    @classmethod
+    async def upload_player_data(cls):
+        async with aiohttp.ClientSession() as session:
+            for player in Player.select():
+                logging.debug(
+                    f'Uploading weekly XP data for player {player.player_name}')
+                player.upload_player_weekly_xp(session)
 
     @staticmethod
     async def get_members():
@@ -236,8 +233,16 @@ class Player(BaseModel):
                 logging.debug(
                     f'Parsed json data for player {self.player_name}: {content}')
 
-                if 'isMember' in content[0]:
-                    is_member = content[0]['isMember']
+                if '1' in content[0]['Ubisoft']['games']:
+                    # Check if there is a isMember flag inside and loop through the characters
+                    char = list(content[0]['Ubisoft']['games']
+                                ['1']['characters'].keys())
+                    if 'isMember' in content[0]['Ubisoft']['games']['1']['characters'][char[0]]:
+                        is_member = content[0]['Ubisoft']['games']['1']['characters'][char[0]]['isMember']
+                    else:
+                        # Log an error if there is no isMember value inside
+                        logging.error(
+                            f"No isMember value for player {self.player_name}")
 
                 # Continue with the parsed value
                 logging.debug(
@@ -267,7 +272,7 @@ class Player(BaseModel):
                     except LookupError as err:
                         # Log this error
                         logging.error(
-                            f'Player {Player.player_name} probably changed the name: {err}')
+                            f'Player {player.player_name} probably changed the name: {err}')
 
                         # Only send a warning if this is true
                         enable_name_warning = os.getenv('enable_name_warning')
@@ -336,6 +341,11 @@ class Player(BaseModel):
                 if r'_' in player.player_name:
                     player.player_name = player.player_name.replace('_', r'\_')
 
+                # Check if the player's weekly XP is negative, as this can happen if the source server from tracker network
+                # sends weird data.
+                if xp_to_display < 0:
+                    xp_to_display = 0
+
                 # Formatting the embed: https://cog-creators.github.io/discord-embed-sandbox/
                 field += f"**{counter}.** <@{player.player_discord_id}> ({player.player_name})\n{'{:,}'.format(xp_to_display).replace(',', '.')}\n"
 
@@ -350,16 +360,3 @@ class Player(BaseModel):
                                     value=field, inline=False)
         embed.set_footer(text=f"Last Update: {t.strftime('%d.%m.%y %H:%M')}")
         return embed
-
-
-class Message(BaseModel):
-    message_id = AutoField(null=True)
-    discord_message_id = IntegerField(null=True)
-    description = TextField(null=True)
-    discord_channel_id = IntegerField(null=True)
-
-    class Meta:
-        table_name = 'discord_messages'
-
-    def __str__(self):
-        return f'Discord Message ID: {self.discord_message_id}, Description {self.description}'
