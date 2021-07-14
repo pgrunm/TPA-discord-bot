@@ -81,13 +81,6 @@ async def new_xp_messages():
             msg.save()
 
 
-async def disable_update_cron(deactivate=True):
-    if deactivate == True:
-        logging.debug('Cronjob deactivated.')
-    else:
-        logging.debug('Cronjob activated.')
-
-
 @bot.command()
 async def xpmessage(ctx, *args):
 
@@ -160,14 +153,6 @@ if __name__ == '__main__':
         # https://cron.help/#*/30_0-9,11_*_*_*
         scheduler.add_job(update_xp_messages, 'cron',
                           minute='*/30', hour='0-9,11-23')
-
-        '''
-        # Deactivate the above scheduler
-        scheduler.add_job(disable_update_cron, 'cron', minute='*/2')
-        # And reactivate it afterwards
-        scheduler.add_job(disable_update_cron, 'cron', kwargs={
-            'deactivate': True}, minute='*/3')
-        '''
 
         # Update player data, https://cron.help/#15/30_*_*_*_*
         scheduler.add_job(models.Player.Player.update_player_data, kwargs={
