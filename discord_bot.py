@@ -179,6 +179,11 @@ if __name__ == '__main__':
         # Update weekly xp
         scheduler.add_job(models.Player.Player.update_player_data, kwargs={
             'update_weekly_xp': True, 'bot': bot}, trigger='cron',  day_of_week='thu', hour=10)
+
+        # Upload weekly xp to CV
+        scheduler.add_job(models.Player.Player.upload_player_data,
+                          trigger='cron',  day_of_week='thu', hour=9, minute='40')
+
     else:
         logging.info('Starting with disabled cronjobs...')
 
