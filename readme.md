@@ -2,7 +2,7 @@
 
 ## Features
 
-- Clan Experience Points
+- Clan Experience Points and upload into CV.
 
 ## Installation
 
