@@ -343,7 +343,9 @@ class Player(BaseModel.BaseModel):
 
                 # Check if the player's weekly XP is negative, as this can happen if the source server from tracker network
                 # sends weird data.
-                if xp_to_display < 0 or None:
+                if xp_to_display == None:
+                    xp_to_display = 0
+                elif xp_to_display < 0:
                     xp_to_display = 0
 
                 # Formatting the embed: https://cog-creators.github.io/discord-embed-sandbox/
