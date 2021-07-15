@@ -101,7 +101,7 @@ class Player(BaseModel.BaseModel):
                 self.save()
 
     @Limit(calls=20, period=60)
-    async def upload_player_weekly_xp(self, session):
+    async def upload_player_weekly_xp(self, session, xp_value):
         '''
         Upload player's weekly XP data to TPA community site.
         '''
@@ -120,9 +120,6 @@ class Player(BaseModel.BaseModel):
         # accountTypName: Ubisoft
         # officialAccountId: Account ID
         # Accountname: Name of the account, but not necessary
-
-        # Calculate the XP
-        xp_value = self.player_weekly_xp - self.player_xp
 
         if(xp_value > 0):
             json_upload_content = {
@@ -155,8 +152,22 @@ class Player(BaseModel.BaseModel):
         async with aiohttp.ClientSession() as session:
             for player in Player.select():
                 logging.debug(
-                    f'Uploading weekly XP data for player {player.player_name}')
-                await player.upload_player_weekly_xp(session)
+                    f'Checking CV XP upload for player {player.player_name}...')
+
+                # Calculate the player's xp. If it is negative it may not be uploaded so there is no need to call the method.
+                xp_value = player.player_weekly_xp - player.player_xp
+                logging.debug(
+                    f'Calculated XP value for player {player.player_name}: {xp_value}')
+
+                if(xp_value > 0):
+                    logging.debug(
+                        f'Uploading weekly XP data for player {player.player_name}')
+                    await player.upload_player_weekly_xp(session, xp_value)
+                    logging.debug(
+                        f'Upload of xp data for player {player.player_name} finished.')
+                else:
+                    logging.debug(
+                        f'XP value for player {player.player_name} is negative, so skipping')
 
     @staticmethod
     async def get_members():
