@@ -156,7 +156,7 @@ class Player(BaseModel.BaseModel):
             for player in Player.select():
                 logging.debug(
                     f'Uploading weekly XP data for player {player.player_name}')
-                player.upload_player_weekly_xp(session)
+                await player.upload_player_weekly_xp(session)
 
     @staticmethod
     async def get_members():
