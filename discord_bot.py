@@ -31,6 +31,29 @@ async def on_ready():
 
     logging.info('Logged in as {0.user}'.format(bot))
 
+
+@bot.event
+async def on_member_join(member):
+    if os.getenv('enable_member_join_messages') == 'true':
+        # Get the discord channel id from local environment
+        discord_log_channel = bot.get_channel(os.getenv('log_channel_id'))
+
+        message = f':new:<@{member.id}> `{member.name}` ist dem Server beigetreten.'
+
+        await discord_log_channel.send(message)
+
+
+@bot.event
+async def on_member_remove(member):
+    if os.getenv('enable_member_join_messages') == 'true':
+        # Get the discord channel id from local environment
+        discord_log_channel = bot.get_channel(os.getenv('log_channel_id'))
+
+        message = f':door:<@{member.id}> `{member.name}` hat den Server verlassen.'
+
+        await discord_log_channel.send(message)
+
+
 '''
 # https://stackoverflow.com/a/62496039
 @client.event
