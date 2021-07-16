@@ -25,7 +25,7 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 db = SqliteDatabase('tpa.db')
 
 
-@ bot.event
+@bot.event
 async def on_ready():
     '''Logs the currently logged in user.'''
 
