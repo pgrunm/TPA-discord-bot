@@ -153,10 +153,7 @@ if __name__ == '__main__':
     log_encoding = 'utf-8'
 
     # Create the logging handler
-    my_handler = RotatingFileHandler(log_file, mode='a',
-                                     # 5 -> 5 MiB
-                                     maxBytes=5*1024*1024,
-                                     backupCount=2, encoding=log_encoding, delay=0)
+    my_handler = logging.StreamHandler(sys.stdout)
 
     # Set the logging level
     my_handler.setLevel(log_level)
