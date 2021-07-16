@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from logging.handlers import RotatingFileHandler
+import sys
 
 import discord
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -36,22 +37,34 @@ async def on_ready():
 async def on_member_join(member):
     if os.getenv('enable_member_join_messages') == 'true':
         # Get the discord channel id from local environment
-        discord_log_channel = bot.get_channel(os.getenv('log_channel_id'))
+        channel_id = os.getenv('log_channel_id')
+        discord_log_channel = bot.get_channel(int(channel_id))
 
-        message = f':new:<@{member.id}> `{member.name}` ist dem Server beigetreten.'
+        if discord_log_channel != None:
+            logging.debug(f'Logging channel id {channel_id} found.')
 
-        await discord_log_channel.send(message)
+            message = f':new:<@{member.id}> `{member.name}` ist dem Server beigetreten.'
+
+            await discord_log_channel.send(message)
+        else:
+            logging.error(f'Logging channel id {channel_id} NOT found.')
 
 
 @bot.event
 async def on_member_remove(member):
     if os.getenv('enable_member_join_messages') == 'true':
         # Get the discord channel id from local environment
-        discord_log_channel = bot.get_channel(os.getenv('log_channel_id'))
+        channel_id = os.getenv('log_channel_id')
+        discord_log_channel = bot.get_channel(int(channel_id))
 
-        message = f':door:<@{member.id}> `{member.name}` hat den Server verlassen.'
+        if discord_log_channel != None:
+            logging.debug(f'Logging channel id {channel_id} found.')
 
-        await discord_log_channel.send(message)
+            message = f':door:<@{member.id}> `{member.name}` hat den Server verlassen.'
+
+            await discord_log_channel.send(message)
+        else:
+            logging.error(f'Logging channel id {channel_id} NOT found.')
 
 
 '''
