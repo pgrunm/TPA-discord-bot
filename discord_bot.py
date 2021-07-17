@@ -43,7 +43,7 @@ async def on_member_join(member):
         if discord_log_channel != None:
             logging.debug(f'Logging channel id {channel_id} found.')
 
-            message = f':new:<@{member.id}> `{member.name}` ist dem Server beigetreten.'
+            message = f':new:<@{member.id}> `{member.name}#{member.discriminator}` ist dem Server beigetreten.'
 
             await discord_log_channel.send(message)
         else:
@@ -60,7 +60,7 @@ async def on_member_remove(member):
         if discord_log_channel != None:
             logging.debug(f'Logging channel id {channel_id} found.')
 
-            message = f':door:<@{member.id}> `{member.name}` hat den Server verlassen.'
+            message = f':door:<@{member.id}> `{member.name}#{member.discriminator}` hat den Server verlassen.'
 
             await discord_log_channel.send(message)
         else:
