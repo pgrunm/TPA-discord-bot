@@ -230,6 +230,7 @@ class Player(BaseModel.BaseModel):
         # Create the JSON dict
         game_id = {'accountTypName': 'Ubisoft',
                    'officialAccountId': self.player_ubi_id}
+        is_member = True
 
         logging.debug(
             f'Trying to retrieve member stats for user {self.player_name} with ubi id {self.player_ubi_id}')
@@ -240,24 +241,28 @@ class Player(BaseModel.BaseModel):
                 data = await resp.text()
 
                 # Parse the raw json into an object
-                content = json.loads(data)
-                logging.debug(
-                    f'Parsed json data for player {self.player_name}: {content}')
+                try:
+                    content = json.loads(data)
+                except JSONDecodeError as json_err:
+                    logging.debug(
+                        f'{json_err} occured while checking player {self.player_name}')
+                else:
+                    logging.debug(
+                        f'Parsed json data for player {self.player_name}: {content}')
+                    if '1' in content[0]['Ubisoft']['games']:
+                        # Check if there is a isMember flag inside and loop through the characters
+                        char = list(content[0]['Ubisoft']['games']
+                                    ['1']['characters'].keys())
+                        if 'isMember' in content[0]['Ubisoft']['games']['1']['characters'][char[0]]:
+                            is_member = content[0]['Ubisoft']['games']['1']['characters'][char[0]]['isMember']
+                        else:
+                            # Log an error if there is no isMember value inside
+                            logging.error(
+                                f"No isMember value for player {self.player_name}")
 
-                if '1' in content[0]['Ubisoft']['games']:
-                    # Check if there is a isMember flag inside and loop through the characters
-                    char = list(content[0]['Ubisoft']['games']
-                                ['1']['characters'].keys())
-                    if 'isMember' in content[0]['Ubisoft']['games']['1']['characters'][char[0]]:
-                        is_member = content[0]['Ubisoft']['games']['1']['characters'][char[0]]['isMember']
-                    else:
-                        # Log an error if there is no isMember value inside
-                        logging.error(
-                            f"No isMember value for player {self.player_name}")
-
-                # Continue with the parsed value
-                logging.debug(
-                    f'Parsed value for player {self.player_name}: {is_member}')
+                    # Continue with the parsed value
+                    logging.debug(
+                        f'Parsed value for player {self.player_name}: {is_member}')
         except aiohttp.client_exceptions.ServerDisconnectedError as server_disconnect:
             logging.error(
                 f'Server disconnected session for player {self.player_name} with error: {server_disconnect}')
