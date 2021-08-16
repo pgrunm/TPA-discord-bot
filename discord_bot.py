@@ -1,22 +1,17 @@
-import asyncio
 import logging
 import os
-from logging.handlers import RotatingFileHandler
 import sys
 from pathlib import Path
 
 import discord
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from discord import Message
-from discord import message
-from discord.ext import commands, tasks
+from discord.ext import commands
 from dotenv import load_dotenv
-from peewee import SqliteDatabase
 from gcsa.google_calendar import GoogleCalendar
+from peewee import SqliteDatabase
 
-# from models import Player, Message
-import models.Player
 import models.Message
+import models.Player
 
 intents = discord.Intents.default()
 intents.members = True
