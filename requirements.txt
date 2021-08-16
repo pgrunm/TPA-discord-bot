@@ -3,3 +3,4 @@ apscheduler==3.7.0
 python-dotenv==0.17.0
 discord.py==1.7.1
 peewee==3.14.4
+gcsa

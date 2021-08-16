@@ -3,6 +3,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 import sys
+from pathlib import Path
 
 import discord
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -11,6 +12,7 @@ from discord import message
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from peewee import SqliteDatabase
+from gcsa.google_calendar import GoogleCalendar
 
 # from models import Player, Message
 import models.Player
@@ -127,7 +129,33 @@ async def xpmessage(ctx, *args):
         await ctx.author.send(message)
 
 
-@bot.event
+@bot.command()
+async def termine(ctx, *args):
+    # Retrieve the calender settings
+    logging.debug(
+        f"Parsing calender credentials from {Path(os.getenv('calendar_credentials_path'))}")
+
+    calendar = GoogleCalendar(
+        calendar=os.getenv('kalender_mail'),
+        credentials_path=Path(os.getenv('calendar_credentials_path')),
+        token_path=Path(os.getenv('calendar_token_path')))
+
+    # Parse the channel id and convert it to integer
+    channel_id = os.getenv('calender_channel_id')
+    discord_channel = bot.get_channel(int(channel_id))
+
+    if discord_channel != None:
+        logging.debug(f'Calender channel id {channel_id} found.')
+
+        logging.debug('Preparing the download of the calendar events...')
+        event_list = ''
+        for event in calendar:
+            event_list += f'{event.summary} ({event.start} bis {event.end}): {event.description}\n'
+
+        await discord_channel.send(event_list)
+
+
+@ bot.event
 async def on_message(message):
     # Just in case there are any commands they need to be processed.
     await bot.process_commands(message)
