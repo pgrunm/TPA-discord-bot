@@ -10,3 +10,7 @@ __pycache__/
 # Log files
 *.log
 Archiv/
+
+# Credential files
+credentials.json
+token.pickle
