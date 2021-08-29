@@ -9,6 +9,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from gcsa.google_calendar import GoogleCalendar
 from peewee import SqliteDatabase
+from dateutil import parser
 
 import models.Message
 import models.Player
@@ -148,9 +149,14 @@ async def termine(ctx, *args):
             # New Embed formatting
             embed = discord.Embed(title=f":calendar_spiral: {event.summary}\n")
 
+            # Prepare datetime formatting
+            time_format = "%d.%m.%Y %H:%M"
+            dt = event.start  # Contains the start time of the event
+
             # Add beginning time as field
             embed.add_field(name="Beginn",
-                            value=event.start, inline=False)
+                            value=dt.strftime(time_format), inline=False)
+
             # Add a description
             embed.add_field(name="Beschreibung",
                             value=event.description, inline=False)
