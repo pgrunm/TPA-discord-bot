@@ -143,11 +143,24 @@ async def termine(ctx, *args):
         logging.debug(f'Calender channel id {channel_id} found.')
 
         logging.debug('Preparing the download of the calendar events...')
-        event_list = ''
-        for event in calendar:
-            event_list += f'{event.summary} ({event.start} bis {event.end}): {event.description}\n'
 
-        await discord_channel.send(event_list)
+        for event in calendar:
+            # New Embed formatting
+            embed = discord.Embed(title=f":calendar_spiral: {event.summary}\n")
+
+            # Add beginning time as field
+            embed.add_field(name="Beginn",
+                            value=event.start, inline=False)
+            # Add a description
+            embed.add_field(name="Beschreibung",
+                            value=event.description, inline=False)
+
+            # Send the embed
+            embed_msg = await discord_channel.send(embed=embed)
+
+            # Add reactions for yes and maybe.
+            await embed_msg.add_reaction('✅')
+            await embed_msg.add_reaction('🤷')
 
 
 @ bot.event
