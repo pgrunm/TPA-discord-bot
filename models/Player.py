@@ -216,6 +216,19 @@ class Player(BaseModel.BaseModel):
                         if player.player_discord_id == None:
                             player.player_discord_id = discord_id
 
+                        # Check if the Discord id is of type int. If it's not, somebody entered garbage and it has to be changed in the CV.
+                        elif isinstance(player.player_discord_id, int) == False:
+                            # Log the player name and the ID
+                            logging.warning(
+                                f'Discord ID of player {player.player_name}, ID {player.player_id} is not int: {player.player_discord_id}.')
+                            logging.warning(
+                                f'Overwriting discord id of player {player.player_name}, ID {player.player_id}')
+                            logging.debug(
+                                f'Overwriting the discord id of player {player.player_name} (ID:{player.player_id}) from {player.player_discord_id} to {discord}')
+
+                            # Change the discord id
+                            player.player_discord_id = discord_id
+
                     # Finally save the player to the database
                     player.save()
 
