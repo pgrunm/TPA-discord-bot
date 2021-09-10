@@ -108,8 +108,6 @@ async def assign_combo_role(before, after, comb_role_list):
 
                 # Create a log channel message
                 message = f':information_source:<@{before.id}> hat die Komborolle {combo_role.name} entfernt bekommen.'
-        else:
-            message = f':information_source:<@{before.id}> wurde bearbeitet, Rollenanzahl ist gleichgeblieben.'
         logging.debug(
             f'Done with editing roles for player {before.name}')
 
@@ -120,7 +118,7 @@ async def assign_combo_role(before, after, comb_role_list):
         if discord_log_channel != None:
             logging.debug(f'Logging channel id {channel_id} found.')
 
-            if message != None:
+            if message != '':
                 await discord_log_channel.send(message)
         else:
             logging.error(f'Logging channel id {channel_id} NOT found.')
