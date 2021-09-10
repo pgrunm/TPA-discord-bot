@@ -6,7 +6,7 @@ from json.decoder import JSONDecodeError
 
 import aiohttp
 import discord
-from peewee import SQL, AutoField, IntegerField, TextField
+from peewee import SQL, AutoField, IntegerField, PeeweeException, TextField
 
 from models.BaseModel import BaseModel
 from models.Limit.Limit import Limit
@@ -199,9 +199,14 @@ class Player(BaseModel.BaseModel):
                     discord_id = user['Discord']['officialAccountId']
 
                     # Try to find the user inside the database
-                    player, created = Player.get_or_create(
-                        player_ubi_id=ubi_id,
-                        defaults={'player_name': nickname, 'player_xp': 0, 'player_discord_id': discord_id})
+                    try:
+                        player, created = Player.get_or_create(
+                            player_ubi_id=ubi_id,
+                            defaults={'player_name': nickname, 'player_xp': 0, 'player_discord_id': discord_id})
+                    # except peewee.IntegrityError as peewee_integrity_error:
+                    except PeeweeException as peewee_err:
+                        logging.error(
+                            f'Error occured with player {nickname}, error message: {peewee_err}')
 
                     if created == False:
                         # Save the Ubisoft ID and if the name has changed also the name.
