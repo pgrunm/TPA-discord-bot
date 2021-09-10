@@ -111,18 +111,6 @@ async def assign_combo_role(before, after, comb_role_list):
             logging.debug(
                 f'Done with editing roles for player {before.name}')
 
-            # Send log message to logging channel
-            channel_id = os.getenv('log_channel_id')
-            discord_log_channel = bot.get_channel(int(channel_id))
-
-            if discord_log_channel != None:
-                logging.debug(f'Logging channel id {channel_id} found.')
-
-                if message != '':
-                    await discord_log_channel.send(message)
-            else:
-                logging.error(f'Logging channel id {channel_id} NOT found.')
-
 
 async def update_xp_messages():
     # Edit message: https://stackoverflow.com/a/55711759
