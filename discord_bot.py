@@ -70,7 +70,8 @@ async def on_member_remove(member):
 
 @bot.event
 async def on_member_update(before, after):
-    await assign_combo_role(before, after, role_list)
+    if os.getenv('enable_combo_roles') == 'true':
+        await assign_combo_role(before, after, role_list)
 
 
 # Assign the role
