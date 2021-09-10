@@ -235,12 +235,21 @@ if __name__ == '__main__':
     # Role Setup for server roles
     combi_role_idDiv = int(os.getenv('combi_role_idDiv'))
     combi_role_idBF = int(os.getenv('combi_role_idBF'))
+    combi_role_idNW = int(os.getenv('combi_role_idNW'))
+
+    # TPA default role id
     role_id_TPA = int(os.getenv('role_id_TPA'))
+
+    # Game roles
     role_id_Div = int(os.getenv('role_id_Div'))
     role_id_BF = int(os.getenv('role_id_BF'))
+    role_id_NW = int(os.getenv('role_id_NW'))
 
-    role_list = [[combi_role_idDiv, [role_id_TPA, role_id_Div]],
-                 [combi_role_idBF, [role_id_TPA, role_id_BF]]]
+    role_list = [
+        [combi_role_idDiv, [role_id_TPA, role_id_Div]],
+        [combi_role_idBF, [role_id_TPA, role_id_BF]],
+        [combi_role_idNW, [role_id_TPA, role_id_NW]]
+    ]
 
     # Logging configuration
     log_file = 'bot.log'
