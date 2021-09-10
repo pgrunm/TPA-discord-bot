@@ -14,7 +14,7 @@ from dateutil import parser
 import models.Message
 import models.Player
 
-intents = discord.Intents.default()
+intents = discord.Intents().all()
 intents.members = True
 
 # Bot command prefix
@@ -22,6 +22,9 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 # Database setting
 db = SqliteDatabase('tpa.db')
+
+# Global list for saving the roles to this later
+role_list = list()
 
 
 @bot.event
@@ -65,19 +68,57 @@ async def on_member_remove(member):
             logging.error(f'Logging channel id {channel_id} NOT found.')
 
 
-'''
-# https://stackoverflow.com/a/62496039
-@client.event
+@bot.event
 async def on_member_update(before, after):
-    if len(before.roles) < len(after.roles):
-        # The user has gained a new role, so lets find out which one
-        newRole = next(
-            role for role in after.roles if role not in before.roles)
+    await assign_combo_role(before, after, role_list)
 
-        if newRole.name == "Respected":
-            # This uses the name but you could always use newRole.id == Roleid here
-            # Now, simply put the code you want to run whenever someone gets the "Respected" role here
-'''
+
+# Assign the role
+async def assign_combo_role(before, after, comb_role_list):
+    message = ''
+    logging.debug(f'Editing roles for {before.name}')
+    for role_list in comb_role_list:
+        required_roles = []
+        for role in role_list[1]:
+            required_role = discord.utils.get(after.guild.roles, id=role)
+            logging.debug(
+                f'Found role: {required_role.name} ({required_role.id})')
+
+            logging.debug(
+                f'Adding player {before.name} role: {required_role.name} ({required_role.id})')
+            required_roles.append(required_role)
+
+        combo_role = discord.utils.get(after.guild.roles, id=role_list[0])
+
+        # Compares the length of roles from before with after
+        if len(before.roles) != len(after.roles):
+
+            if set(required_roles).issubset(after.roles):
+                logging.debug(
+                    f'Adding combo role {combo_role.name} for player {before.name}')
+                await after.add_roles(combo_role)
+
+                # Create a log channel message
+                message = f':information_source:<@{before.id}> hat die Komborolle {combo_role.name} zugewiesen bekommen.'
+            else:
+                logging.debug(
+                    f'Removing combo role {combo_role.name} for player {before.name}')
+                await after.remove_roles(combo_role)
+
+                # Create a log channel message
+                message = f':information_source:<@{before.id}> hat die Komborolle {combo_role.name} entfernt bekommen.'
+        logging.debug(
+            f'Done with editing roles for player {before.name}')
+
+        # Send log message to logging channel
+        channel_id = os.getenv('log_channel_id')
+        discord_log_channel = bot.get_channel(int(channel_id))
+
+        if discord_log_channel != None:
+            logging.debug(f'Logging channel id {channel_id} found.')
+            await discord_log_channel.send(message)
+        else:
+            logging.error(f'Logging channel id {channel_id} NOT found.')
 
 
 async def update_xp_messages():
@@ -189,6 +230,16 @@ if __name__ == '__main__':
     load_dotenv(override=True)
     log_level = os.getenv('log_level').upper()
     enable_crons = os.getenv('enable_crons')
+
+    # Role Setup for server roles
+    combi_role_idDiv = int(os.getenv('combi_role_idDiv'))
+    combi_role_idBF = int(os.getenv('combi_role_idBF'))
+    role_id_TPA = int(os.getenv('role_id_TPA'))
+    role_id_Div = int(os.getenv('role_id_Div'))
+    role_id_BF = int(os.getenv('role_id_BF'))
+
+    role_list = [[combi_role_idDiv, [role_id_TPA, role_id_Div]],
+                 [combi_role_idBF, [role_id_TPA, role_id_BF]]]
 
     # Logging configuration
     log_file = 'bot.log'
