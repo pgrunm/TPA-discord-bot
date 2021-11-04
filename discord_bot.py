@@ -50,6 +50,18 @@ async def on_member_join(member):
         else:
             logging.error(f'Logging channel id {channel_id} NOT found.')
 
+        # Send welcome message to player
+        if os.getenv('enable_welcome_msg') == 'true':
+            await member.send(f'''
+Hallo {member.name},
+Willkommen auf dem Discord Server der The Penguin Army!
+Bitte lies unbedingt den Kanal <#{channel_id_info}> unter Allgemeines!
+Um The Penguin Army beizutreten ist eine Bestätigung der <#{channel_id_regeln}> erforderlich!
+
+Falls Du Dich als Mitglied bewerben möchtest, schreibe Deine Bewerbung an die entsprechende Person. Siehe Infos dazu im Kanal <#{channel_id_bewerben}>.
+
+Ansonsten wünschen wir Dir viel Spaß bei der The Penguin Army.''')
+
 
 @bot.event
 async def on_member_remove(member):
@@ -148,6 +160,24 @@ async def new_xp_messages():
 
 
 @bot.command()
+async def joinmsg(ctx, *args):
+    if os.getenv('enable_welcome_debug_msg') == 'true':
+        message = f'''
+Hallo {ctx.author.display_name},
+Willkommen auf dem Discord Server der The Penguin Army!
+Bitte lies unbedingt den Kanal <#{channel_id_info}> unter Allgemeines!
+Um The Penguin Army beizutreten ist eine Bestätigung der <#{channel_id_regeln}> erforderlich!
+
+Falls Du Dich als Mitglied bewerben möchtest, schreibe Deine Bewerbung an die entsprechende Person. Siehe Infos dazu im Kanal <#{channel_id_bewerben}>.
+
+Ansonsten wünschen wir Dir viel Spaß bei der The Penguin Army.'''
+        await ctx.author.send(message)
+    else:
+        message = "Currently not in debugging mode, command not available!"
+        await ctx.author.send(message)
+
+
+@bot.command()
 async def xpmessage(ctx, *args):
 
     if log_level.upper() == 'DEBUG':
@@ -241,6 +271,11 @@ if __name__ == '__main__':
         [combi_role_idNW, [role_id_TPA, role_id_NW]]
     ]
 
+    # Required Channel IDs for the welcome message
+    channel_id_info = int(os.getenv('channel_id_info'))
+    channel_id_regeln = int(os.getenv('channel_id_regeln'))
+    channel_id_bewerben = int(os.getenv('channel_id_bewerben'))
+
     # Logging configuration
     log_file = 'bot.log'
     log_encoding = 'utf-8'
@@ -285,7 +320,8 @@ if __name__ == '__main__':
             'bot': bot}, trigger='cron', minute='15/30')
 
         # Retrieve new members
-        scheduler.add_job(models.Player.Player.get_members, 'cron', minute=55)
+        scheduler.add_job(models.Player.Player.get_members,
+                          'cron', minute=55)
 
         # Update weekly xp
         scheduler.add_job(models.Player.Player.update_player_data, kwargs={
